@@ -12,9 +12,9 @@ Welcome to the System, Hunter. Your awakening begins now.
 
 ---
 
-## 📸 System Interface
+## 📸 PC System Interface
 
-<p align="left">
+<p align="center">
     <img src="screenshots/7-user-panel.png" width="24%" alt="Hunter Status & Radar Chart" />
     <img src="screenshots/1-domain.png" width="24%" alt="Domain & Skill Trees" />
     <img src="screenshots/2-tasks.png" width="24%" alt="Daily Quest Board" />
@@ -22,7 +22,10 @@ Welcome to the System, Hunter. Your awakening begins now.
     <img src="screenshots/5-graph.png" width="24%" alt="Analytics & Progress Graph" />
     <img src="screenshots/6-achievements.png" width="24%" alt="Achievement Vault" />
 </p>
-<p align="right">
+
+## 📸 Android System Interface
+
+<p align="center">
     <img src="screenshots/mobile-screenshot.png" width="24%" alt="Mobile Cross-Platform View" />
 </p>
 
