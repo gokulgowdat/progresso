@@ -1,0 +1,7 @@
+Package: progresso-system
+Version: 1.0.0
+Section: utility
+Priority: optional
+Architecture: amd64
+Maintainer: Hunter
+Description: The ultimate gamified life-management system and vault.
