@@ -1,0 +1,32 @@
+name: Windows Cloud Forge
+
+on:
+  workflow_dispatch: # This allows you to trigger the build manually
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: 🐦 Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: 📦 Install Dependencies
+        run: flutter pub get
+
+      - name: 🔨 Build Windows Release
+        run: flutter build windows --release
+
+      - name: 🗜️ Zip the Artifact
+        run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath progresso_system_windows_x64.zip
+
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: progresso_system_windows_x64.zip
