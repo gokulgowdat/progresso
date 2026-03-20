@@ -14,11 +14,9 @@ Welcome to the System, Hunter. Your awakening begins now.
 
 ## 📸 System Interface
 
-## 📸 System Interface
 
 <p align="center">
   <img src="screenshots/mobile-screenshot.png" width="24%" alt="Mobile Dashboard" />
-  <img src="screenshots/7-user-panel.png" width="24%" alt="User Profile & Status" />
   <img src="screenshots/1-domain.png" width="24%" alt="Domain & Skill Trees" />
   <img src="screenshots/2-tasks.png" width="24%" alt="Daily Quest Board" />
 </p>
@@ -26,6 +24,7 @@ Welcome to the System, Hunter. Your awakening begins now.
   <img src="screenshots/3-log.png" width="24%" alt="Boss Raids & Log" />
   <img src="screenshots/5-graph.png" width="24%" alt="Analytics Graph" />
   <img src="screenshots/6-achievements.png" width="24%" alt="Achievement Vault" />
+  <img src="screenshots/7-user-panel.png" width="24%" alt="User Profile & Status" />
 </p>
 
 ---
