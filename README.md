@@ -21,12 +21,15 @@ Welcome to the System, Hunter. Your awakening begins now.
     <img src="screenshots/3-log.png" width="24%" alt="Boss Raids & System Log" />
     <img src="screenshots/5-graph.png" width="24%" alt="Analytics & Progress Graph" />
     <img src="screenshots/6-achievements.png" width="24%" alt="Achievement Vault" />
+    <img src="screenshots/8-settings.png" width="24%" alt="Achievement Vault" />
 </p>
 
 ## 📸 Android System Interface
 
 <p align="center">
     <img src="screenshots/mobile-screenshot.png" width="24%" alt="Mobile Cross-Platform View" />
+    <img src="screenshots/mobile-screenshot2.png" width="24%" alt="Mobile Cross-Platform View" />
+    <img src="screenshots/mobile-screenshot3.png" width="24%" alt="Mobile Cross-Platform View" />
 </p>
 
 ---
