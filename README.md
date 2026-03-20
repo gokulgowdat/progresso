@@ -13,12 +13,19 @@ Welcome to the System, Hunter. Your awakening begins now.
 ---
 
 ## 📸 System Interface
-*(Upload your screenshots to GitHub and replace these placeholder links!)*
-<p float="left">
-  <img src="https://via.placeholder.com/250x500.png?text=Mobile+Dashboard" width="24%" />
-  <img src="https://via.placeholder.com/250x500.png?text=Status+Window" width="24%" />
-  <img src="https://via.placeholder.com/250x500.png?text=Boss+Raids" width="24%" />
-  <img src="https://via.placeholder.com/250x500.png?text=Penalty+Zone" width="24%" />
+
+## 📸 System Interface
+
+<p align="center">
+  <img src="screenshots/mobile-screenshot.png" width="24%" alt="Mobile Dashboard" />
+  <img src="screenshots/7-user-panel.png" width="24%" alt="User Profile & Status" />
+  <img src="screenshots/1-domain.png" width="24%" alt="Domain & Skill Trees" />
+  <img src="screenshots/2-tasks.png" width="24%" alt="Daily Quest Board" />
+</p>
+<p align="center">
+  <img src="screenshots/3-log.png" width="24%" alt="Boss Raids & Log" />
+  <img src="screenshots/5-graph.png" width="24%" alt="Analytics Graph" />
+  <img src="screenshots/6-achievements.png" width="24%" alt="Achievement Vault" />
 </p>
 
 ---
