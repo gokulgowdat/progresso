@@ -9,6 +9,7 @@ import '../tabs/analytics_tab.dart';
 import '../tabs/tasks_tab.dart';
 import '../tabs/quest_log_tab.dart'; 
 import '../tabs/achievements_tab.dart'; 
+import '../tabs/mind_map_tab.dart'; 
 
 class AppColors {
   final bool isDark;
@@ -73,6 +74,72 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  // ===========================================================================
+  // 🛑 TWO-FACTOR DESTRUCTION PROTOCOL (WARNING DIALOGS)
+  // ===========================================================================
+  void _showResetWarning1(BuildContext context, SystemController system) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2C2C2C),
+        title: const Text("⚠️ SYSTEM WIPE INITIATED", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: const Text("Are you absolutely sure? This will delete all Domains, Quests, Mind Maps, and Stats.", style: TextStyle(color: Colors.white)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showResetWarning2(context, system); // Trigger the final safety lock
+            },
+            child: const Text("PROCEED", style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showResetWarning2(BuildContext context, SystemController system) {
+    TextEditingController confirmCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2C2C2C),
+        title: const Text("🛑 FINAL WARNING", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("This action is IRREVERSIBLE. To permanently destroy your Vault, you must type 'WIPE' below.", style: TextStyle(color: Colors.white)),
+            const SizedBox(height: 15),
+            TextField(
+              controller: confirmCtrl,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: "Type WIPE to confirm", 
+                hintStyle: TextStyle(color: Colors.grey),
+                filled: true,
+                fillColor: Color(0xFF171717)
+              ),
+            )
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("ABORT", style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () {
+              if (confirmCtrl.text.trim().toUpperCase() == 'WIPE') {
+                Navigator.pop(ctx);
+                system.masterReset();
+                setState(() => activeTab = 'domains');
+              }
+            },
+            child: const Text("DESTROY VAULT", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final system = context.watch<SystemController>();
@@ -116,11 +183,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: Icon(system.isAudioPlaying ? Icons.graphic_eq : Icons.headphones, color: system.isAudioPlaying ? const Color(0xFF00BFA5) : colors.subText), 
+            tooltip: "Flow State Audio",
+            onPressed: () => _showAudioDeck(context, system, colors)
+          ),
+          IconButton(
+            icon: Icon(Icons.hub, color: activeTab == 'mindmaps' ? colors.accent : colors.subText), 
+            tooltip: "Mind Web",
+            onPressed: () => setState(() { activeTab = 'mindmaps'; closeSlidePanel(); })
+          ),
+          IconButton(
+            icon: Icon(Icons.help_outline, color: colors.subText), 
+            tooltip: "System Guide",
+            onPressed: () => _showSystemGuide(context, colors)
+          ),
+          IconButton(
             icon: Icon(Icons.settings, color: activeTab == 'settings' ? colors.accent : colors.subText), 
             onPressed: () => setState(() { activeTab = 'settings'; closeSlidePanel(); })
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 15, left: 10),
+            padding: const EdgeInsets.only(right: 15, left: 5),
             child: InkWell(
               onTap: () => setState(() { activeTab = 'user_profile'; closeSlidePanel(); }),
               child: CircleAvatar(
@@ -255,7 +337,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 20),
                 const Text("🔥", style: TextStyle(fontSize: 28)),
                 Text("${system.currentStreak}", style: TextStyle(color: colors.text, fontSize: 16, fontWeight: FontWeight.bold)),
+                
+                const SizedBox(height: 30),
+                
+                IconButton(
+                  icon: Icon(Icons.hub, color: activeTab == 'mindmaps' ? colors.accent : colors.subText, size: 28),
+                  tooltip: "Mind Web Panel",
+                  onPressed: () { setState(() { activeTab = 'mindmaps'; closeSlidePanel(); }); }
+                ),
+
+                const SizedBox(height: 15),
+
+                IconButton(
+                  icon: Icon(system.isAudioPlaying ? Icons.graphic_eq : Icons.headphones, 
+                             color: system.isAudioPlaying ? const Color(0xFF00BFA5) : colors.subText, size: 28),
+                  tooltip: "Flow State Audio",
+                  onPressed: () => _showAudioDeck(context, system, colors),
+                ),
+
                 const Spacer(),
+                
+                IconButton(
+                  icon: Icon(Icons.help_outline, color: colors.subText, size: 28),
+                  tooltip: "System Guide",
+                  onPressed: () => _showSystemGuide(context, colors),
+                ),
+
+                const SizedBox(height: 15),
                 
                 IconButton(
                   icon: Icon(Icons.settings, color: activeTab == 'settings' ? colors.accent : colors.subText, size: 28), 
@@ -294,6 +402,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (activeTab == 'calendar') return const QuestLogTab(); 
     if (activeTab == 'analytics') return const AnalyticsTab(); 
     if (activeTab == 'badges') return const AchievementsTab(); 
+    if (activeTab == 'mindmaps') return const MindMapTab(); 
     if (activeTab == 'settings') return _buildSettingsView(system, colors);
     if (activeTab == 'user_profile') return _buildUserProfileView(system, colors); 
     return const SizedBox();
@@ -446,50 +555,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 20),
         Expanded(
           child: SingleChildScrollView(
-            child: system.systemData.isCardView 
-              ? Wrap(
-                  spacing: 15, runSpacing: 15,
-                  alignment: WrapAlignment.start,
-                  children: system.systemData.skills.map((domain) {
-                    return _buildInlineDomainCard(domain, system, colors);
-                  }).toList(),
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: system.systemData.skills.length,
-                  itemBuilder: (context, index) {
-                    final domain = system.systemData.skills[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: colors.altCard, borderRadius: BorderRadius.circular(8), border: Border.all(color: colors.border)),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(domain.name, style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("Progress: ${domain.progress.toStringAsFixed(1)}%", style: TextStyle(color: colors.subText, fontSize: 12)),
-                              const SizedBox(height: 5),
-                              LinearProgressIndicator(value: domain.progress / 100.0, backgroundColor: colors.inputBg, color: colors.accent, minHeight: 4, borderRadius: BorderRadius.circular(2)),
-                            ],
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ElevatedButton(onPressed: () => openSlidePanel(domain), style: ElevatedButton.styleFrom(backgroundColor: colors.inputBg, foregroundColor: colors.accent, elevation: 0), child: const Text("ACCESS")),
-                            IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _showRenameDialog(context, system, domain, colors)),
-                            IconButton(icon: Icon(Icons.close, color: colors.danger), onPressed: () => system.deleteDomain(domain.id)),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+            child: Wrap(
+              spacing: 15, runSpacing: 15,
+              alignment: WrapAlignment.start,
+              children: system.systemData.skills.map((domain) {
+                return _buildInlineDomainCard(domain, system, colors);
+              }).toList(),
+            )
           ),
         ),
       ],
@@ -561,41 +633,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ===========================================================================
-  // ⚙️ THE STRICT GEOMETRIC SETTINGS PANEL
+// ===========================================================================
+  // ⚙️ SETTINGS PANEL
   // ===========================================================================
   Widget _buildSettingsView(SystemController system, AppColors colors) {
     TextEditingController ipController = TextEditingController();
     bool isMobile = MediaQuery.of(context).size.width < 800;
-    bool isCard = system.systemData.isCardView && !isMobile;
-
-    // The Universal Square Card Generator
-    Widget buildSquareCard({required String title, required Widget child, Color? borderColor, Color? titleColor}) {
-      return Container(
-        width: isMobile ? double.infinity : 350,
-        height: isMobile ? null : 350, // Fixed perfect square height
-        padding: const EdgeInsets.all(25),
-        decoration: BoxDecoration(
-          color: colors.card,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor ?? colors.border, width: borderColor != null ? 2 : 1),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(title, textAlign: TextAlign.center, style: TextStyle(color: titleColor ?? colors.accent, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-            const SizedBox(height: 20),
-            Expanded(
-              // Center the content both vertically and horizontally inside the square
-              child: Center(
-                child: SingleChildScrollView(child: child),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
 
     Widget appearanceContent = Column(
       mainAxisSize: MainAxisSize.min,
@@ -605,14 +648,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Text("Toggle between Light and Dark aesthetics.", textAlign: TextAlign.center, style: TextStyle(color: colors.subText, fontSize: 12)),
         const SizedBox(height: 10),
         Switch(value: system.systemData.isDarkMode, activeColor: colors.accent, onChanged: (val) => system.toggleTheme()),
-        const SizedBox(height: 20),
-        Divider(color: colors.border),
-        const SizedBox(height: 20),
-        Text("Card View", style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 5),
-        Text("Toggle grid layout versus list layout.", textAlign: TextAlign.center, style: TextStyle(color: colors.subText, fontSize: 12)),
-        const SizedBox(height: 10),
-        Switch(value: system.systemData.isCardView, activeColor: colors.accent, onChanged: (val) => system.toggleViewMode()),
       ],
     );
 
@@ -630,15 +665,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Widget syncContent = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text("YOUR SYSTEM IP:", style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 5),
-        Text(system.syncEngine.localIp, style: const TextStyle(color: Color(0xFF00BFA5), fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
-        const SizedBox(height: 20),
-        TextField(controller: ipController, textAlign: TextAlign.center, style: TextStyle(color: colors.text), decoration: InputDecoration(hintText: "Enter Target IP...", hintStyle: TextStyle(color: colors.subText), filled: true, fillColor: colors.inputBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))),
+        if (system.syncEngine.discoveredDevices.isNotEmpty) ...[
+          Text("DISCOVERED VAULTS", style: TextStyle(color: colors.text, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
+          const SizedBox(height: 10),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 150),
+            decoration: BoxDecoration(color: colors.inputBg, borderRadius: BorderRadius.circular(8)),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: system.syncEngine.discoveredDevices.length,
+              itemBuilder: (context, index) {
+                var device = system.syncEngine.discoveredDevices[index];
+                return ListTile(
+                  leading: Icon(Icons.computer, color: colors.accent),
+                  title: Text(device.name, style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
+                  subtitle: Text(device.ip, style: TextStyle(color: colors.subText, fontSize: 10)),
+                  trailing: ElevatedButton(
+                    onPressed: () => system.syncWithDevice(device.ip),
+                    style: ElevatedButton.styleFrom(backgroundColor: colors.accent, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 10)),
+                    child: const Text("SYNC", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 15),
+        ],
+        
+        ElevatedButton.icon(
+          onPressed: system.isScanning ? null : () => system.runRadarScan(), 
+          icon: system.isScanning ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)) : const Icon(Icons.radar), 
+          label: Text(system.isScanning ? "SCANNING..." : "RADAR SCAN", style: const TextStyle(fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50), backgroundColor: colors.accent, foregroundColor: Colors.black, elevation: 0)
+        ),
+        
+        if (system.syncStatusMessage.isNotEmpty && !system.syncStatusMessage.contains("SECURITY") && !system.syncStatusMessage.contains("EXPORT")) 
+          Padding(
+            padding: const EdgeInsets.only(top: 15), 
+            child: Text(system.syncStatusMessage, textAlign: TextAlign.center, style: TextStyle(color: system.syncStatusMessage.contains("ERROR") ? colors.danger : const Color(0xFF00BFA5), fontWeight: FontWeight.bold, fontSize: 12))
+          ),
+
+        const SizedBox(height: 25),
+        Divider(color: colors.border),
         const SizedBox(height: 15),
-        ElevatedButton(onPressed: () => system.syncWithDevice(ipController.text), style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50), backgroundColor: colors.accent, foregroundColor: colors.invertText, elevation: 0), child: const Text("INITIATE SYNC", style: TextStyle(fontWeight: FontWeight.bold))),
-        if (system.syncStatusMessage.isNotEmpty && !system.syncStatusMessage.contains("SECURITY") && !system.syncStatusMessage.contains("PORT")) 
-          Padding(padding: const EdgeInsets.only(top: 15), child: Text(system.syncStatusMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Designate as Master Node", style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text("Master data always overwrites Slave data.", style: TextStyle(color: colors.danger, fontSize: 10)),
+                ],
+              ),
+            ),
+            Switch(
+              value: system.systemData.isMasterDevice, 
+              activeColor: colors.danger, 
+              onChanged: (val) {
+                setState(() {
+                  system.systemData.isMasterDevice = val;
+                  system.recalculateSystem();
+                });
+              }
+            ),
+          ],
+        ),
       ],
     );
 
@@ -676,46 +770,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 5),
         Text("Irreversibly purges the Vault and destroys all System Progress.", textAlign: TextAlign.center, style: TextStyle(color: colors.subText, fontSize: 12)),
         const SizedBox(height: 25),
-        ElevatedButton(onPressed: () { system.masterReset(); setState(() => activeTab = 'domains'); }, style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50), backgroundColor: colors.danger, foregroundColor: Colors.white, elevation: 0), child: const Text("WIPE SYSTEM"))
+        ElevatedButton(
+          onPressed: () => _showResetWarning1(context, system), 
+          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50), backgroundColor: colors.danger, foregroundColor: Colors.white, elevation: 0), 
+          child: const Text("WIPE SYSTEM")
+        )
       ],
     );
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("SYSTEM CONFIGURATION", style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-          const SizedBox(height: 20),
-          if (isCard)
-            Wrap(
-              spacing: 20, 
-              runSpacing: 20, 
-              alignment: WrapAlignment.start, // Ensures perfect grid alignment on the left
+    // =========================================================================
+    // THE DYNAMIC LAYOUT BUILDER
+    // =========================================================================
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double spacing = 20.0;
+        int crossAxisCount = constraints.maxWidth > 1100 ? 5 : 2; 
+        
+        // FIX: Safely calculate width without using double.infinity
+        double cardWidth = isMobile ? constraints.maxWidth : (constraints.maxWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+
+        Widget buildSquareCard({required String title, required Widget child, Color? borderColor, Color? titleColor}) {
+          return Container(
+            width: cardWidth,
+            // FIX: Auto-height on mobile (null), fixed height (400) on desktop grids
+            height: isMobile ? null : 400, 
+            padding: const EdgeInsets.all(25),
+            decoration: BoxDecoration(
+              color: colors.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor ?? colors.border, width: borderColor != null ? 2 : 1),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              // FIX: Shrink-wrap the column vertically on mobile
+              mainAxisSize: isMobile ? MainAxisSize.min : MainAxisSize.max, 
               children: [
-                buildSquareCard(title: "🎨 SYSTEM APPEARANCE", child: appearanceContent),
-                buildSquareCard(title: "⚔️ SYSTEM DIFFICULTY", child: difficultyContent, titleColor: system.systemData.isPenaltyEnabled ? colors.danger : colors.accent, borderColor: system.systemData.isPenaltyEnabled ? colors.danger : colors.border),
-                buildSquareCard(title: "📡 WI-FI AUTO-SYNC", child: syncContent),
-                buildSquareCard(title: "💾 VAULT BACKUP (.PRG)", child: backupContent),
-                buildSquareCard(title: "⚠️ FACTORY RESET", child: resetContent, titleColor: colors.danger, borderColor: colors.danger),
-              ]
-            )
-          else
-            Column(
-              children: [
-                buildSquareCard(title: "🎨 SYSTEM APPEARANCE", child: appearanceContent), const SizedBox(height: 15),
-                buildSquareCard(title: "⚔️ SYSTEM DIFFICULTY", child: difficultyContent, titleColor: system.systemData.isPenaltyEnabled ? colors.danger : colors.accent, borderColor: system.systemData.isPenaltyEnabled ? colors.danger : colors.border), const SizedBox(height: 15),
-                buildSquareCard(title: "📡 WI-FI AUTO-SYNC", child: syncContent), const SizedBox(height: 15),
-                buildSquareCard(title: "💾 VAULT BACKUP (.PRG)", child: backupContent), const SizedBox(height: 15),
-                buildSquareCard(title: "⚠️ FACTORY RESET", child: resetContent, titleColor: colors.danger, borderColor: colors.danger),
-              ]
-            )
-        ],
-      ),
+                Text(title, textAlign: TextAlign.center, style: TextStyle(color: titleColor ?? colors.accent, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                const SizedBox(height: 20),
+                // FIX: Remove 'Expanded' on mobile so the layout can naturally size itself without crashing
+                if (isMobile)
+                  child
+                else
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(child: child),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("SYSTEM CONFIGURATION", style: TextStyle(color: colors.text, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: spacing, 
+                runSpacing: spacing, 
+                alignment: WrapAlignment.start, 
+                children: [
+                  buildSquareCard(title: "🎨 SYSTEM APPEARANCE", child: appearanceContent),
+                  buildSquareCard(title: "⚔️ SYSTEM DIFFICULTY", child: difficultyContent, titleColor: system.systemData.isPenaltyEnabled ? colors.danger : colors.accent, borderColor: system.systemData.isPenaltyEnabled ? colors.danger : colors.border),
+                  buildSquareCard(title: "📡 WI-FI AUTO-SYNC", child: syncContent),
+                  buildSquareCard(title: "💾 VAULT BACKUP (.PRG)", child: backupContent),
+                  buildSquareCard(title: "⚠️ FACTORY RESET", child: resetContent, titleColor: colors.danger, borderColor: colors.danger),
+                ]
+              )
+            ],
+          ),
+        );
+      }
     );
   }
-
   // ===========================================================================
-  // 🧑 THE PERFECT SQUARE "STATUS WINDOW" PROFILE PANEL
+  // 🧑 PROFILE PANEL
   // ===========================================================================
   Widget _buildUserProfileView(SystemController system, AppColors colors) {
     TextEditingController nameController = TextEditingController(text: system.systemData.profileName);
@@ -725,11 +857,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     bool hasPhoto = system.systemData.profilePhotoUrl.isNotEmpty && File(system.systemData.profilePhotoUrl).existsSync();
     bool isMobile = MediaQuery.of(context).size.width < 800;
 
-    // The Universal Square Card Generator (Profile Version)
     Widget buildSquareCard({required String title, required Widget child, Color? borderColor}) {
       return Container(
         width: isMobile ? double.infinity : 380,
-        height: isMobile ? null : 380, // Perfect square height
+        height: isMobile ? null : 380, 
         padding: const EdgeInsets.all(25),
         decoration: BoxDecoration(
           color: colors.card,
@@ -760,7 +891,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           alignment: Alignment.bottomRight,
           children: [
             CircleAvatar(
-              radius: 50, backgroundColor: colors.inputBg, // Slightly smaller to fit square perfectly
+              radius: 50, backgroundColor: colors.inputBg,
               backgroundImage: hasPhoto ? FileImage(File(system.systemData.profilePhotoUrl)) : null,
               child: !hasPhoto ? Text(system.systemData.profileName.isNotEmpty ? system.systemData.profileName[0].toUpperCase() : "U", style: TextStyle(color: colors.text, fontSize: 36, fontWeight: FontWeight.bold)) : null,
             ),
@@ -791,7 +922,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 180, height: 180, // Sized perfectly for the 380 square box
+          width: 180, height: 180, 
           decoration: BoxDecoration(color: colors.inputBg, shape: BoxShape.circle),
           child: CustomPaint(
             painter: StatRadarPainter(
@@ -858,9 +989,166 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
+  // ===========================================================================
+  // 🎧 FLOW STATE AUDIO DECK 
+  // ===========================================================================
+  void _showAudioDeck(BuildContext context, SystemController system, AppColors colors) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: colors.accent)),
+        title: Row(
+          children: [
+            Icon(Icons.graphic_eq, color: colors.accent),
+            const SizedBox(width: 10),
+            Text("FLOW STATE DECK", style: TextStyle(color: colors.text, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("STATUS: ${system.currentTrackName}", style: TextStyle(color: system.isAudioPlaying ? const Color(0xFF00BFA5) : colors.subText, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 25),
+            
+            ListTile(
+              leading: Icon(Icons.upload_file, color: colors.accent),
+              title: Text("Upload Custom Audio", style: TextStyle(color: colors.text, fontWeight: FontWeight.bold)),
+              trailing: IconButton(
+                icon: const Icon(Icons.add_circle, color: Colors.white),
+                onPressed: () async {
+                  FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
+                  if (result != null && result.files.single.path != null) {
+                    system.playLocalAudio(result.files.single.path!, result.files.single.name);
+                    Navigator.pop(ctx);
+                  }
+                }
+              ),
+            ),
+            Divider(color: colors.border),
+            
+            ListTile(
+              leading: const Icon(Icons.water_drop, color: Colors.blue),
+              title: Text("Heavy Rain", style: TextStyle(color: colors.text)),
+              trailing: IconButton(
+                icon: const Icon(Icons.play_circle_fill, color: Colors.white),
+                onPressed: () {
+                  system.playAudioStream("https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg", "Heavy Rain");
+                  Navigator.pop(ctx);
+                }
+              ),
+            ),
+            
+            ListTile(
+              leading: const Icon(Icons.waves, color: Colors.brown),
+              title: Text("Deep Space Focus", style: TextStyle(color: colors.text)),
+              trailing: IconButton(
+                icon: const Icon(Icons.play_circle_fill, color: Colors.white),
+                onPressed: () {
+                  system.playAudioStream("https://actions.google.com/sounds/v1/science_fiction/outer_space.ogg", "Deep Space");
+                  Navigator.pop(ctx);
+                }
+              ),
+            ),
+            
+            ListTile(
+              leading: const Icon(Icons.forest, color: Colors.green),
+              title: Text("Forest Wind", style: TextStyle(color: colors.text)),
+              trailing: IconButton(
+                icon: const Icon(Icons.play_circle_fill, color: Colors.white),
+                onPressed: () {
+                  system.playAudioStream("https://actions.google.com/sounds/v1/weather/forest_wind_summer.ogg", "Forest Wind");
+                  Navigator.pop(ctx);
+                }
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            if (system.isAudioPlaying)
+              ElevatedButton.icon(
+                onPressed: () {
+                  system.stopAudio();
+                  Navigator.pop(ctx);
+                }, 
+                icon: const Icon(Icons.stop), 
+                label: const Text("TERMINATE AUDIO"),
+                style: ElevatedButton.styleFrom(backgroundColor: colors.danger, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 45)),
+              )
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // 📖 SYSTEM GUIDE DIALOG (NEW)
+  // ===========================================================================
+  void _showSystemGuide(BuildContext context, AppColors colors) {
+    Widget buildGuideSection(String title, String description) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 25.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: TextStyle(color: colors.accent, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(description, style: TextStyle(color: colors.subText, fontSize: 14, height: 1.5)),
+          ],
+        ),
+      );
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: colors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: colors.border)),
+        child: Container(
+          width: 800,
+          height: MediaQuery.of(context).size.height * 0.8,
+          padding: const EdgeInsets.all(25),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.help_outline, color: colors.accent, size: 28),
+                      const SizedBox(width: 10),
+                      Text("SYSTEM MANUAL", style: TextStyle(color: colors.text, fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                    ]
+                  ),
+                  IconButton(icon: Icon(Icons.close, color: colors.subText), onPressed: () => Navigator.pop(ctx))
+                ],
+              ),
+              Divider(color: colors.border, height: 30),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      buildGuideSection("📁 Domains & Skills", "The core structure of your progression. Create high-level Domains (e.g., 'Computer Science', 'Physical Health') and break them down into actionable Skills. Click 'ACCESS' to dive deeper into a Domain hierarchy. Checking off Skills increases your Domain mastery percentage."),
+                      buildGuideSection("⏱️ Focus Engine", "Inside a Domain, click 'FOCUS' next to a Skill to launch the Timer. Deep work hours logged here permanently level up your Core Attributes (STR for physical, INT for learning) visible on your Status Radar in your profile."),
+                      buildGuideSection("📅 Daily Tasks & Strategic Milestones", "Daily Tasks: Log your daily requirements. If you fail to complete them and 'Hard Mode' is enabled, your System will enter an Accountability Lock.\nStrategic Milestones: Set massive, time-boxed goals with a strict deadline. You must mark them as Achieved before the clock runs out."),
+                      buildGuideSection("🧠 The Mind Web", "Visualize your thoughts and plans. The System automatically generates a read-only map of your current Domains. You can also forge Custom Maps using 4 distinct physics engines: Balanced (Radial), Logic Chart (Right-aligned), Org Chart (Top-down), and Timeline."),
+                      buildGuideSection("🎧 Flow State Audio", "Click the Headphones icon on the right to access ambient background audio. You can play built-in focus tracks (Rain, Brown Noise) or click 'Upload Custom Audio' to loop your own MP3 or OGG files locally."),
+                      buildGuideSection("🏆 Analytics & Vault", "Track your progression over time. The System automatically awards Badges as you hit global milestones, complete tasks, and log focus hours. Your current continuous 'Streak' (🔥) is displayed at the top of the sidebar."),
+                      buildGuideSection("⚠️ Hard Mode (Accountability Lock)", "Found in the Settings tab. If enabled, missing a pending Daily Task at midnight will trigger an Accountability Lock the following day, requiring you to commit to an action before regaining access to your tools."),
+                    ],
+                  ),
+                ),
+              )
+            ]
+          )
+        )
+      )
+    );
+  }
 }
 
-// --- CUSTOM RADAR CHART PAINTER ---
 class StatRadarPainter extends CustomPainter {
   final double str, intl, agi, wil;
   final Color accentColor;
@@ -871,7 +1159,10 @@ class StatRadarPainter extends CustomPainter {
     double cx = size.width / 2; double cy = size.height / 2;
     double radius = size.width / 2 - 25; 
 
-    double maxStat = [str, intl, agi, wil, 10.0].reduce((a, b) => a > b ? a : b);
+    // Scaled Radar Buffer. 
+    // Forces a minimum max scale of 50, and always adds a 25% empty buffer ring so stats never touch the edge perfectly.
+    double highestStat = [str, intl, agi, wil, 10.0].reduce((a, b) => a > b ? a : b);
+    double maxStat = highestStat < 50.0 ? 50.0 : highestStat * 1.25;
 
     final gridPaint = Paint()..color = Colors.grey.withOpacity(0.2)..style = PaintingStyle.stroke;
     canvas.drawLine(Offset(cx, cy - radius), Offset(cx, cy + radius), gridPaint); 

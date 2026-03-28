@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/system_controller.dart';
-import '../models/system_data.dart'; // For BossRaid type
+import '../models/system_data.dart'; 
 
 class TasksTab extends StatefulWidget {
   const TasksTab({super.key});
@@ -11,13 +11,11 @@ class TasksTab extends StatefulWidget {
 }
 
 class _TasksTabState extends State<TasksTab> {
-  // This tracks which day you are currently viewing/planning for
   DateTime selectedDate = DateTime.now();
   final TextEditingController taskInputController = TextEditingController();
 
   String get dateString => selectedDate.toIso8601String().split('T')[0];
 
-  // Helper to format the date nicely for the UI
   String get displayDate {
     DateTime today = DateTime.now();
     DateTime tomorrow = today.add(const Duration(days: 1));
@@ -30,7 +28,6 @@ class _TasksTabState extends State<TasksTab> {
     return s;
   }
 
-  // Feature 2a: Accessible Calendar Picker (Themed)
   Future<void> _pickDate(bool isDark, Color accent, Color card, Color text) async {
     DateTime? picked = await showDatePicker(
       context: context,
@@ -54,14 +51,13 @@ class _TasksTabState extends State<TasksTab> {
     }
   }
 
-  // Feature 2b: Advanced Postpone Dialog
   void _showPostponeDialog(SystemController system, String taskId, bool isDark, Color card, Color text, Color accent) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: card,
-          title: Text("Postpone Quest", style: TextStyle(color: text, fontWeight: FontWeight.bold)),
+          title: Text("Postpone Task", style: TextStyle(color: text, fontWeight: FontWeight.bold)),
           content: const Text("When would you like to tackle this?", style: TextStyle(color: Colors.grey)),
           actionsAlignment: MainAxisAlignment.spaceEvenly,
           actions: [
@@ -88,8 +84,8 @@ class _TasksTabState extends State<TasksTab> {
     );
   }
 
-  // Feature: Boss Raid Dialog (Themed)
-  void _showAddRaidDialog(SystemController system, bool isDark, Color card, Color inputBg, Color text, Color subText, Color accent) {
+  // REFACTORED: Professional Milestone Dialog
+  void _showAddMilestoneDialog(SystemController system, bool isDark, Color card, Color inputBg, Color text, Color subText, Color accent) {
     TextEditingController titleCtrl = TextEditingController();
     DateTime raidEnd = DateTime.now().add(const Duration(days: 7));
     
@@ -98,17 +94,17 @@ class _TasksTabState extends State<TasksTab> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: card,
-          title: const Text("INITIATE BOSS RAID", style: TextStyle(color: Color(0xFFFF5555), fontWeight: FontWeight.bold)),
+          title: Text("DEFINE MILESTONE", style: TextStyle(color: accent, fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleCtrl, 
                 style: TextStyle(color: text), 
-                decoration: InputDecoration(hintText: "Raid Objective...", hintStyle: TextStyle(color: subText), filled: true, fillColor: inputBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(5), borderSide: BorderSide.none))
+                decoration: InputDecoration(hintText: "Milestone Objective...", hintStyle: TextStyle(color: subText), filled: true, fillColor: inputBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(5), borderSide: BorderSide.none))
               ),
               const SizedBox(height: 20),
-              Text("Time Limit:", style: TextStyle(color: subText)),
+              Text("Target Deadline:", style: TextStyle(color: subText)),
               TextButton(
                 onPressed: () async {
                   DateTime? p = await showDatePicker(
@@ -135,8 +131,8 @@ class _TasksTabState extends State<TasksTab> {
                 system.addBossRaid(titleCtrl.text, raidEnd.toIso8601String().split('T')[0]); 
                 Navigator.pop(context); 
               }, 
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5555), foregroundColor: Colors.white, elevation: 0), 
-              child: const Text("START RAID", style: TextStyle(fontWeight: FontWeight.bold))
+              style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.black, elevation: 0), 
+              child: const Text("INITIATE", style: TextStyle(fontWeight: FontWeight.bold))
             ),
           ],
         ),
@@ -148,7 +144,6 @@ class _TasksTabState extends State<TasksTab> {
   Widget build(BuildContext context) {
     final system = context.watch<SystemController>();
     
-    // --- DYNAMIC THEME COLORS ---
     final bool isDark = system.systemData.isDarkMode;
     final Color card = isDark ? const Color(0xFF2C2C2C) : const Color(0xFFFFFFFF);
     final Color altCard = isDark ? const Color(0xFF252525) : const Color(0xFFF9FAFB);
@@ -162,7 +157,7 @@ class _TasksTabState extends State<TasksTab> {
     final Color inputBg = isDark ? const Color(0xFF171717) : const Color(0xFFEDF2F7);
 
     // =========================================================================
-    // EXTREME LOSS AVERSION: THE PENALTY ZONE
+    // EXTREME LOSS AVERSION: REFACTORED ACCOUNTABILITY LOCK
     // =========================================================================
     if (system.systemData.isPenaltyActive) {
       return Container(
@@ -175,25 +170,24 @@ class _TasksTabState extends State<TasksTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Color(0xFFFF5555), size: 80),
+            const Icon(Icons.lock_clock, color: Color(0xFFFF5555), size: 80),
             const SizedBox(height: 20),
-            const Text("PENALTY ZONE ACTIVE", textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFFF5555), fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 3)),
+            const Text("ACCOUNTABILITY LOCK", textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFFF5555), fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 3)),
             const SizedBox(height: 10),
-            Text("You failed to complete your daily quests before midnight.", textAlign: TextAlign.center, style: TextStyle(color: subText, fontSize: 14)),
+            Text("You missed your mandatory daily tasks yesterday.", textAlign: TextAlign.center, style: TextStyle(color: subText, fontSize: 14)),
             const SizedBox(height: 40),
-            Text("PUNISHMENT QUEST:\nComplete 100 Pushups & Study 1 Extra Hour.", textAlign: TextAlign.center, style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("REQUIRED ACTION:\nComplete 100 Pushups & Study 1 Extra Hour.", textAlign: TextAlign.center, style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 50),
             ElevatedButton(
               onPressed: () => system.clearPenaltyZone(),
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5555), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20), elevation: 0),
-              child: const Text("I HAVE SURVIVED THE PENALTY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              child: const Text("I HAVE COMPLETED THE REVIEW", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             )
           ],
         ),
       );
     }
 
-    // Filter tasks and raids
     var activeTasks = system.systemData.dailyTasks.where((t) => t.date == dateString).toList();
     var activeRaids = system.systemData.bossRaids.where((r) => r.status == 'active').toList();
 
@@ -201,21 +195,21 @@ class _TasksTabState extends State<TasksTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // =====================================================================
-        // EPIC TIME-BOXED GOALS: BOSS RAIDS
+        // STRATEGIC MILESTONES (Formerly Boss Raids)
         // =====================================================================
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("ACTIVE BOSS RAIDS", style: TextStyle(color: Color(0xFFFF5555), fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+            Text("STRATEGIC MILESTONES", style: TextStyle(color: accent, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
             ElevatedButton(
-              onPressed: () => _showAddRaidDialog(system, isDark, card, inputBg, text, subText, accent), 
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5555), foregroundColor: Colors.white, elevation: 0), 
-              child: const Text("+ NEW RAID", style: TextStyle(fontWeight: FontWeight.bold))
+              onPressed: () => _showAddMilestoneDialog(system, isDark, card, inputBg, text, subText, accent), 
+              style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.black, elevation: 0), 
+              child: const Text("+ NEW MILESTONE", style: TextStyle(fontWeight: FontWeight.bold))
             )
           ],
         ),
         const SizedBox(height: 15),
-        if (activeRaids.isEmpty) Text("No active raids. The realm is safe.", style: TextStyle(color: subText, fontStyle: FontStyle.italic)),
+        if (activeRaids.isEmpty) Text("No active milestones. Set a strategic target to begin.", style: TextStyle(color: subText, fontStyle: FontStyle.italic)),
         if (activeRaids.isNotEmpty)
           SizedBox(
             height: 125,
@@ -228,19 +222,19 @@ class _TasksTabState extends State<TasksTab> {
                 
                 return Container(
                   width: 250, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFFF5555), width: 2)),
+                  decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(10), border: Border.all(color: accent, width: 2)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(raid.title, style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
                       const Spacer(),
-                      Text(daysLeft >= 0 ? "$daysLeft DAYS REMAINING" : "DEADLINE MISSED", style: const TextStyle(color: Color(0xFFFF5555), fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text(daysLeft >= 0 ? "$daysLeft DAYS REMAINING" : "DEADLINE MISSED", style: TextStyle(color: daysLeft >= 0 ? accent : const Color(0xFFFF5555), fontWeight: FontWeight.bold, fontSize: 12)),
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Expanded(child: ElevatedButton(onPressed: () => system.resolveRaid(raid.id, 'won'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00BFA5), foregroundColor: Colors.white, elevation: 0, padding: EdgeInsets.zero), child: const Text("VICTORY", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
+                          Expanded(child: ElevatedButton(onPressed: () => system.resolveRaid(raid.id, 'won'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00BFA5), foregroundColor: Colors.white, elevation: 0, padding: EdgeInsets.zero), child: const Text("ACHIEVED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
                           const SizedBox(width: 5),
-                          Expanded(child: ElevatedButton(onPressed: () => system.resolveRaid(raid.id, 'failed'), style: ElevatedButton.styleFrom(backgroundColor: border, foregroundColor: text, elevation: 0, padding: EdgeInsets.zero), child: const Text("RETREAT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
+                          Expanded(child: ElevatedButton(onPressed: () => system.resolveRaid(raid.id, 'failed'), style: ElevatedButton.styleFrom(backgroundColor: border, foregroundColor: text, elevation: 0, padding: EdgeInsets.zero), child: const Text("ABANDON", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
                         ],
                       )
                     ],
@@ -255,14 +249,13 @@ class _TasksTabState extends State<TasksTab> {
         const SizedBox(height: 15),
 
         // =====================================================================
-        // STANDARD QUEST BOARD
+        // STANDARD TASK BOARD
         // =====================================================================
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("QUEST BOARD", style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+            Text("DAILY TASKS", style: TextStyle(color: text, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
             
-            // The Date Navigator
             Container(
               decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(8), border: Border.all(color: border)),
               child: Row(
@@ -280,13 +273,12 @@ class _TasksTabState extends State<TasksTab> {
         ),
         const SizedBox(height: 20),
         
-        // --- INPUT ROW ---
         Row(
           children: [
             Expanded(
               child: TextField(
                 controller: taskInputController, style: TextStyle(color: text),
-                decoration: InputDecoration(hintText: "Add a quest for $displayDate...", hintStyle: TextStyle(color: subText), filled: true, fillColor: inputBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(5), borderSide: BorderSide.none)),
+                decoration: InputDecoration(hintText: "Add a task for $displayDate...", hintStyle: TextStyle(color: subText), filled: true, fillColor: inputBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(5), borderSide: BorderSide.none)),
                 onSubmitted: (value) { system.addDailyTask(value, dateString); taskInputController.clear(); }
               ),
             ),
@@ -299,10 +291,9 @@ class _TasksTabState extends State<TasksTab> {
         ),
         const SizedBox(height: 20),
 
-        // --- TASK LIST ---
         Expanded(
           child: activeTasks.isEmpty
-              ? Center(child: Text(displayDate == "TODAY" ? "No quests assigned for today. Rest up, Hunter." : "No data found for $dateString.", style: TextStyle(color: subText, fontStyle: FontStyle.italic)))
+              ? Center(child: Text(displayDate == "TODAY" ? "No tasks assigned for today. You are caught up." : "No data found for $dateString.", style: TextStyle(color: subText, fontStyle: FontStyle.italic)))
               : ListView.builder(
                   itemCount: activeTasks.length,
                   itemBuilder: (context, index) {

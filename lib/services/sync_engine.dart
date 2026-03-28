@@ -1,78 +1,128 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
 import '../models/system_data.dart';
 
+class DiscoveredVault {
+  final String name;
+  final String ip;
+  DiscoveredVault(this.name, this.ip);
+}
+
 class SyncEngine {
-  HttpServer? _server;
+  HttpServer? _tcpServer;
+  RawDatagramSocket? _udpSocket;
   bool isHosting = false;
-  String localIp = "Scanning...";
-  SystemData? _currentData;
+  String localIp = "Not Connected";
+  
+  List<DiscoveredVault> discoveredDevices = [];
 
-  SyncEngine() {
-    _determineLocalIp();
-  }
-
-  // Automatically finds your machine's true local Wi-Fi IP
-  Future<void> _determineLocalIp() async {
+  Future<void> startHosting(SystemData data) async {
+    if (isHosting) return;
     try {
-      for (var interface in await NetworkInterface.list()) {
+      // 1. Identify Local IP
+      var interfaces = await NetworkInterface.list();
+      for (var interface in interfaces) {
         for (var addr in interface.addresses) {
           if (addr.type == InternetAddressType.IPv4 && !addr.isLoopback) {
             localIp = addr.address;
-            return;
+            break;
           }
         }
       }
-    } catch (e) {
-      localIp = "127.0.0.1";
-    }
-  }
 
-  // THE FIX: Binding to anyIPv4 allows the phone to connect!
-  Future<void> startHosting(SystemData data) async {
-    _currentData = data;
-    
-    if (isHosting) return; // Server is already awake
-
-    try {
-      // 0.0.0.0 tells the PC to accept connections from the local router
-      _server = await HttpServer.bind(InternetAddress.anyIPv4, 45455);
-      isHosting = true;
-      
-      _server!.listen((HttpRequest request) {
+      // 2. Start TCP Server (The Data Tunnel on port 8080)
+      _tcpServer = await HttpServer.bind(InternetAddress.anyIPv4, 8080);
+      _tcpServer!.listen((HttpRequest request) {
         if (request.uri.path == '/sync') {
           request.response
-            ..statusCode = HttpStatus.ok
             ..headers.contentType = ContentType.json
-            ..headers.add("Access-Control-Allow-Origin", "*") // Prevent CORS issues
-            ..write(jsonEncode(_currentData!.toJson()))
+            ..write(jsonEncode(data.toJson()))
             ..close();
         } else {
-          request.response
-            ..statusCode = HttpStatus.notFound
-            ..close();
+          request.response..statusCode = HttpStatus.notFound..close();
         }
       });
+
+      // 3. Start UDP Listener (The Radar Receiver on port 8081)
+      _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 8081);
+      _udpSocket!.broadcastEnabled = true;
+      
+      _udpSocket!.listen((RawSocketEvent e) {
+        if (e == RawSocketEvent.read) {
+          Datagram? dg = _udpSocket!.receive();
+          if (dg != null) {
+            String message = utf8.decode(dg.data);
+            if (message == "HUNTER_RADAR_PING") {
+              // If we hear a ping, shout back our Identity and IP!
+              String safeName = data.profileName.isEmpty ? "Unknown Hunter" : data.profileName;
+              String reply = "VAULT_IDENTITY:$safeName";
+              _udpSocket!.send(utf8.encode(reply), dg.address, dg.port);
+            }
+          }
+        }
+      });
+
+      isHosting = true;
     } catch (e) {
-      print("Host error: $e");
+      print("Sync Engine Hosting Error: $e");
     }
   }
 
-  // The Client function used by the device asking for data
-  Future<SystemData?> fetchRemoteData(String targetIp) async {
+  // 📡 THE RADAR PING
+  Future<void> scanNetwork() async {
+    discoveredDevices.clear();
+    RawDatagramSocket? scannerSocket;
+    
     try {
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 5);
+      // Open a temporary socket to shout to the network
+      scannerSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+      scannerSocket.broadcastEnabled = true;
+
+      // Listen for anyone shouting back
+      scannerSocket.listen((RawSocketEvent e) {
+        if (e == RawSocketEvent.read) {
+          Datagram? dg = scannerSocket!.receive();
+          if (dg != null) {
+            String reply = utf8.decode(dg.data);
+            if (reply.startsWith("VAULT_IDENTITY:")) {
+              String name = reply.split(":")[1];
+              String ip = dg.address.address;
+              
+              // Add to the list if it's not us and not already listed
+              if (ip != localIp && !discoveredDevices.any((d) => d.ip == ip)) {
+                discoveredDevices.add(DiscoveredVault(name, ip));
+              }
+            }
+          }
+        }
+      });
+
+      // Blast the Ping to the entire subnet
+      scannerSocket.send(
+        utf8.encode("HUNTER_RADAR_PING"), 
+        InternetAddress("255.255.255.255"), 
+        8081
+      );
+
+      // Keep the radar spinning for exactly 3 seconds to catch replies
+      await Future.delayed(const Duration(seconds: 3));
       
-      final request = await client.getUrl(Uri.parse('http://$targetIp:45455/sync'));
-      final response = await request.close();
-      
-      if (response.statusCode == HttpStatus.ok) {
-        final responseBody = await response.transform(utf8.decoder).join();
-        return SystemData.fromJson(jsonDecode(responseBody));
+    } catch (e) {
+      print("Radar Scanner Error: $e");
+    } finally {
+      scannerSocket?.close();
+    }
+  }
+
+  Future<SystemData?> fetchRemoteData(String ipAddress) async {
+    try {
+      final response = await http.get(Uri.parse('http://$ipAddress:8080/sync')).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        return SystemData.fromJson(jsonDecode(response.body));
       }
     } catch (e) {
-      print("Sync error: $e");
+      return null;
     }
     return null;
   }

@@ -3,12 +3,16 @@ import 'dart:io';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart'; 
+import 'package:path_provider/path_provider.dart'; 
 import '../models/system_data.dart';
 import '../models/skill_node.dart';
 import '../models/task_model.dart';
 import '../models/badge_model.dart';
 import 'storage_engine.dart';
 import 'sync_engine.dart';
+import 'notification_engine.dart'; 
+import '../models/mind_map_model.dart';
 
 class ProgressResult {
   final double completed;
@@ -19,6 +23,10 @@ class ProgressResult {
 class SystemController extends ChangeNotifier {
   final StorageEngine _storage = StorageEngine();
   final SyncEngine syncEngine = SyncEngine();
+  
+  final AudioPlayer audioPlayer = AudioPlayer();
+  String currentTrackName = "Offline";
+  bool isAudioPlaying = false;
   
   SystemData systemData = SystemData();
   bool isInitialized = false;
@@ -151,17 +159,62 @@ class SystemController extends ChangeNotifier {
 
   Future<void> initializeSystem() async {
     systemData = await _storage.loadState();
+    
+    await NotificationEngine.init();
+
     if(quoteLibrary.isNotEmpty) currentQuote = quoteLibrary[Random().nextInt(quoteLibrary.length)];
     if (hasAccount() && systemData.stayLoggedIn) isLoggedIn = true;
+    
     _autoPostponeAndCheckPenalty();
     _evaluateRaids();               
     await syncEngine.startHosting(systemData);
     recalculateSystem();
     isInitialized = true;
     notifyListeners();
+
+    _fireDailyBriefing();
   }
 
-  // --- THE PENALTY ZONE LOGIC ---
+  // --- AUDIO ENGINE CONTROLS ---
+  Future<void> playAudioStream(String url, String trackName) async {
+    await audioPlayer.stop();
+    await audioPlayer.setReleaseMode(ReleaseMode.loop);
+    await audioPlayer.play(UrlSource(url));
+    currentTrackName = trackName;
+    isAudioPlaying = true;
+    notifyListeners();
+  }
+
+  Future<void> playLocalAudio(String filePath, String trackName) async {
+    await audioPlayer.stop();
+    await audioPlayer.setReleaseMode(ReleaseMode.loop);
+    await audioPlayer.play(DeviceFileSource(filePath));
+    currentTrackName = trackName;
+    isAudioPlaying = true;
+    notifyListeners();
+  }
+
+  Future<void> stopAudio() async {
+    await audioPlayer.stop();
+    currentTrackName = "Offline";
+    isAudioPlaying = false;
+    notifyListeners();
+  }
+
+  // --- NOTIFICATION LOGIC ---
+  void _fireDailyBriefing() {
+    String today = DateTime.now().toIso8601String().split('T')[0];
+    int tasksToday = systemData.dailyTasks.where((t) => t.date == today && t.status == 'pending').length;
+    
+    if (tasksToday > 0) {
+      NotificationEngine.showInstantNotification(
+        id: 0, 
+        title: "🔥 System Awake. Rank: $currentStreak", 
+        body: "You have $tasksToday pending Quests for today. Time to hunt."
+      );
+    }
+  }
+
   void _autoPostponeAndCheckPenalty() {
     String today = DateTime.now().toIso8601String().split('T')[0];
     bool failedTaskDetected = false;
@@ -172,9 +225,14 @@ class SystemController extends ChangeNotifier {
         task.date = today; 
       }
     }
-    // ONLY lock the user out if they have Hard Mode enabled
+    
     if (failedTaskDetected && systemData.isPenaltyEnabled) {
       systemData.isPenaltyActive = true; 
+      NotificationEngine.showInstantNotification(
+        id: 99, 
+        title: "☠️ PENALTY ZONE ACTIVATED", 
+        body: "You failed to complete yesterday's quests."
+      );
     }
   }
 
@@ -183,11 +241,10 @@ class SystemController extends ChangeNotifier {
     recalculateSystem();
   }
 
-  // NEW: Toggle Hard Mode
   void togglePenaltyMode() {
     systemData.isPenaltyEnabled = !systemData.isPenaltyEnabled;
     if (!systemData.isPenaltyEnabled) {
-      systemData.isPenaltyActive = false; // Instantly disable lockout if turning off
+      systemData.isPenaltyActive = false;
     }
     recalculateSystem();
   }
@@ -198,7 +255,6 @@ class SystemController extends ChangeNotifier {
   double get statAGI => systemData.dailyTasks.where((t) => t.status == 'completed').length.toDouble();
   double get statWIL => currentStreak.toDouble() * 5.0; 
 
-  // --- BOSS RAIDS LOGIC ---
   void addBossRaid(String title, String deadline) {
     if (title.isNotEmpty) {
       systemData.bossRaids.add(BossRaid(id: DateTime.now().millisecondsSinceEpoch.toString(), title: title, deadlineDate: deadline));
@@ -221,6 +277,7 @@ class SystemController extends ChangeNotifier {
   }
 
   String _hashPassword(String password) => sha256.convert(utf8.encode(password)).toString();
+  
   bool hasAccount() => systemData.username.isNotEmpty && systemData.passwordHash.isNotEmpty;
   
   bool registerUser(String username, String password) {
@@ -269,17 +326,45 @@ class SystemController extends ChangeNotifier {
     }
   }
 
-  void updateProfile(String name, String desc, String photoUrl) {
+// FIX: The Bulletproof Profile Picture Persistence
+  Future<void> updateProfile(String name, String desc, String photoUrl) async {
     systemData.profileName = name;
     systemData.profileDesc = desc;
-    systemData.profilePhotoUrl = photoUrl;
+    
+    if (photoUrl.isNotEmpty && photoUrl != systemData.profilePhotoUrl && !photoUrl.contains('permanent_avatar')) {
+      try {
+        final directory = await getApplicationDocumentsDirectory();
+        
+        // NEW SHIELD: Force the OS to create the directory if it doesn't exist yet!
+        if (!await directory.exists()) {
+          await directory.create(recursive: true);
+        }
+        
+        final newPath = '${directory.path}/permanent_avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final newFile = await File(photoUrl).copy(newPath);
+        systemData.profilePhotoUrl = newFile.path;
+        
+      } catch (e) {
+        print("Failed to save permanent image: $e");
+        systemData.profilePhotoUrl = photoUrl; // Fallback to temp path if it fails
+      }
+    } else if (photoUrl.isEmpty) {
+      systemData.profilePhotoUrl = "";
+    }
+    
     recalculateSystem();
   }
 
-  void toggleTheme() { systemData.isDarkMode = !systemData.isDarkMode; recalculateSystem(); }
-  void toggleViewMode() { systemData.isCardView = !systemData.isCardView; recalculateSystem(); }
+  void toggleTheme() {
+    systemData.isDarkMode = !systemData.isDarkMode;
+    recalculateSystem();
+  }
 
-  // --- IMPORT / EXPORT ENGINE ---
+  void toggleViewMode() {
+    systemData.isCardView = !systemData.isCardView;
+    recalculateSystem();
+  }
+
   Future<void> exportData(String path) async {
     try {
       final file = File(path);
@@ -337,7 +422,11 @@ class SystemController extends ChangeNotifier {
 
   void _evaluateAchievements() {
     List<String> newlyUnlocked = [];
-    void unlock(String id) { if (!systemData.badgesUnlocked.contains(id)) newlyUnlocked.add(id); }
+    void unlock(String id) {
+      if (!systemData.badgesUnlocked.contains(id)) {
+        newlyUnlocked.add(id);
+      }
+    }
 
     if (systemData.skills.isNotEmpty) unlock("sys_init");
     if (systemData.dailyTasks.isNotEmpty) unlock("sys_first_task");
@@ -384,7 +473,8 @@ class SystemController extends ChangeNotifier {
       node.progress = node.completed ? 100.0 : 0.0;
       return ProgressResult(node.completed ? 1.0 : 0.0, 1.0);
     } else {
-      double comp = 0, tot = 0;
+      double comp = 0;
+      double tot = 0;
       for (var child in node.children) {
         var res = _calculateNodeProgress(child);
         comp += res.completed;
@@ -409,27 +499,52 @@ class SystemController extends ChangeNotifier {
       globalTot += res.total;
     }
     systemData.globalProgress = globalTot == 0 ? 0.0 : (globalComp / globalTot) * 100.0;
+    
     _evaluateAchievements();
     _evaluateRaids();
+    
     systemData.lastUpdatedEpoch = DateTime.now().millisecondsSinceEpoch;
-    if (syncEngine.isHosting) syncEngine.startHosting(systemData); 
+    
+    if (syncEngine.isHosting) {
+      syncEngine.startHosting(systemData); 
+    }
+    
     _storage.saveState(systemData);
     notifyListeners();
   }
 
-  void addDomain(String name) { if (name.trim().isNotEmpty) { systemData.skills.add(SkillNode(id: DateTime.now().millisecondsSinceEpoch.toString(), name: name, type: 'domain')); recalculateSystem(); } }
-  void deleteDomain(String id) { systemData.skills.removeWhere((node) => node.id == id); recalculateSystem(); }
-  void addSubNode(SkillNode parent, String name, String type) { if (name.trim().isNotEmpty) { parent.children.add(SkillNode(id: DateTime.now().millisecondsSinceEpoch.toString(), name: name, type: type)); recalculateSystem(); } }
-  void deleteSubNode(SkillNode parent, String childId) { parent.children.removeWhere((node) => node.id == childId); recalculateSystem(); }
+  void addDomain(String name) {
+    if (name.trim().isNotEmpty) {
+      systemData.skills.add(SkillNode(id: DateTime.now().millisecondsSinceEpoch.toString(), name: name, type: 'domain'));
+      recalculateSystem();
+    }
+  }
+
+  void deleteDomain(String id) {
+    systemData.skills.removeWhere((node) => node.id == id);
+    recalculateSystem();
+  }
+
+  void addSubNode(SkillNode parent, String name, String type) {
+    if (name.trim().isNotEmpty) {
+      parent.children.add(SkillNode(id: DateTime.now().millisecondsSinceEpoch.toString(), name: name, type: type));
+      recalculateSystem();
+    }
+  }
+
+  void deleteSubNode(SkillNode parent, String childId) {
+    parent.children.removeWhere((node) => node.id == childId);
+    recalculateSystem();
+  }
   
-  void toggleSkill(SkillNode skill, bool isCompleted) { 
-    skill.completed = isCompleted; 
+  void toggleSkill(SkillNode skill, bool isCompleted) {
+    skill.completed = isCompleted;
     if (isCompleted) {
       skill.dateCompleted = DateTime.now().toIso8601String().split('T')[0];
     } else {
       skill.dateCompleted = null;
     }
-    recalculateSystem(); 
+    recalculateSystem();
   }
 
   List<SkillNode> getCompletedSkillsForDate(String dateStr) {
@@ -446,9 +561,30 @@ class SystemController extends ChangeNotifier {
     return completedSkills;
   }
 
-  void addDailyTask(String text, String targetDate) { if (text.trim().isNotEmpty) { systemData.dailyTasks.add(DailyTask(id: DateTime.now().millisecondsSinceEpoch.toString(), text: text, date: targetDate, status: 'pending')); recalculateSystem(); } }
-  void updateTaskStatus(String id, String newStatus) { systemData.dailyTasks.firstWhere((t) => t.id == id).status = newStatus; recalculateSystem(); }
-  void deleteTask(String id) { systemData.dailyTasks.removeWhere((t) => t.id == id); recalculateSystem(); }
+  void addDailyTask(String text, String targetDate) {
+    if (text.trim().isNotEmpty) {
+      var newTask = DailyTask(id: DateTime.now().millisecondsSinceEpoch.toString(), text: text, date: targetDate, status: 'pending');
+      systemData.dailyTasks.add(newTask);
+      
+      String today = DateTime.now().toIso8601String().split('T')[0];
+      if (targetDate != today) {
+        NotificationEngine.scheduleTaskReminder(newTask);
+      }
+      
+      recalculateSystem();
+    }
+  }
+
+  void updateTaskStatus(String id, String newStatus) {
+    systemData.dailyTasks.firstWhere((t) => t.id == id).status = newStatus;
+    recalculateSystem();
+  }
+
+  void deleteTask(String id) {
+    systemData.dailyTasks.removeWhere((t) => t.id == id);
+    recalculateSystem();
+  }
+
   void postponeTask(String id, String targetDate) {
     var task = systemData.dailyTasks.firstWhere((t) => t.id == id);
     task.status = 'postponed'; 
@@ -457,35 +593,167 @@ class SystemController extends ChangeNotifier {
   }
 
   void commitManualLog(String dateStr, double learnHrs, double exerciseHrs) {
-    if (learnHrs > 0) systemData.hoursWorkedDict[dateStr] = (systemData.hoursWorkedDict[dateStr] ?? 0.0) + learnHrs;
-    if (exerciseHrs > 0) systemData.exerciseHoursDict[dateStr] = (systemData.exerciseHoursDict[dateStr] ?? 0.0) + exerciseHrs;
+    if (learnHrs > 0) {
+      systemData.hoursWorkedDict[dateStr] = (systemData.hoursWorkedDict[dateStr] ?? 0.0) + learnHrs;
+    }
+    if (exerciseHrs > 0) {
+      systemData.exerciseHoursDict[dateStr] = (systemData.exerciseHoursDict[dateStr] ?? 0.0) + exerciseHrs;
+    }
     recalculateSystem();
   }
 
   void logTime(SkillNode skill, double hoursWorked) {
     if (hoursWorked <= 0) return;
+    
     String today = DateTime.now().toIso8601String().split('T')[0];
     skill.timeLogged += hoursWorked;
     skill.dateLogged = today;
+    
     systemData.hoursWorkedDict[today] = (systemData.hoursWorkedDict[today] ?? 0.0) + hoursWorked;
-    if (!systemData.badgesUnlocked.contains("sys_focus")) systemData.badgesUnlocked.add("sys_focus");
+    
+    if (!systemData.badgesUnlocked.contains("sys_focus")) {
+      systemData.badgesUnlocked.add("sys_focus");
+    }
     recalculateSystem(); 
   }
 
-  Future<void> syncWithDevice(String targetIp) async {
-    syncStatusMessage = "Establishing connection to $targetIp...";
+  // ===========================================================================
+  // 📡 SEAMLESS SYNC ENGINE
+  // ===========================================================================
+  
+  bool isScanning = false;
+
+  Future<void> runRadarScan() async {
+    isScanning = true;
+    syncStatusMessage = "Scanning local network for other Vaults...";
     notifyListeners();
-    SystemData? remoteData = await syncEngine.fetchRemoteData(targetIp);
-    if (remoteData == null) {
-      syncStatusMessage = "ERROR: Device not found or blocked by firewall.";
+    
+    await syncEngine.scanNetwork();
+    
+    isScanning = false;
+    if (syncEngine.discoveredDevices.isEmpty) {
+      syncStatusMessage = "No active Vaults found on this network.";
     } else {
-      if (remoteData.lastUpdatedEpoch > systemData.lastUpdatedEpoch) {
-        systemData = remoteData;
-        syncStatusMessage = "SYNC SUCCESS: Loaded newer data from remote device.";
+      syncStatusMessage = "Scan complete. Found ${syncEngine.discoveredDevices.length} Vault(s).";
+    }
+    notifyListeners();
+  }
+
+  Future<void> syncWithDevice(String targetIp) async {
+    syncStatusMessage = "Establishing connection...";
+    notifyListeners();
+    
+    SystemData? remoteData = await syncEngine.fetchRemoteData(targetIp);
+    
+    if (remoteData == null) {
+      syncStatusMessage = "ERROR: Connection failed. Device may be offline.";
+    } else {
+      bool shouldOverwrite = false;
+      
+      if (remoteData.isMasterDevice && !systemData.isMasterDevice) {
+        shouldOverwrite = true; 
+        syncStatusMessage = "SYNC SUCCESS: Overwritten by Master Node.";
+      } else if (!remoteData.isMasterDevice && systemData.isMasterDevice) {
+        shouldOverwrite = false; 
+        syncStatusMessage = "SYNC BLOCKED: This device is the Master Node. Push disabled from Slave.";
+      } else if (remoteData.lastUpdatedEpoch > systemData.lastUpdatedEpoch) {
+        shouldOverwrite = true; 
+        syncStatusMessage = "SYNC SUCCESS: Neural link established. Vault updated.";
       } else {
-        syncStatusMessage = "SYNC COMPLETE: Local data is already up-to-date.";
+        syncStatusMessage = "SYNC COMPLETE: Your local data is already the most recent.";
+      }
+
+      if (shouldOverwrite) {
+        // FIX 2: Shield the local Master Node status before overwriting
+        bool wasLocalMaster = systemData.isMasterDevice;
+
+        if (remoteData.profilePhotoBase64 != null && remoteData.profilePhotoBase64!.isNotEmpty) {
+          try {
+            final directory = await getApplicationDocumentsDirectory();
+            final imagePath = '${directory.path}/synced_avatar.jpg';
+            final imageFile = File(imagePath);
+            await imageFile.writeAsBytes(base64Decode(remoteData.profilePhotoBase64!));
+            remoteData.profilePhotoUrl = imagePath; 
+          } catch (e) {
+            print("Image Reconstruction Failed: $e");
+          }
+        } else {
+          remoteData.profilePhotoUrl = systemData.profilePhotoUrl; 
+        }
+
+        systemData = remoteData;
+        
+        // FIX 2: Restore the original Master Node status
+        systemData.isMasterDevice = wasLocalMaster;
       }
     }
     recalculateSystem();
+  }
+
+  // ===========================================================================
+  // 🧠 MIND WEB ENGINE LOGIC
+  // ===========================================================================
+
+  void createMindMap(String title, String layout) {
+    String newId = DateTime.now().millisecondsSinceEpoch.toString();
+    MindMapData newMap = MindMapData(
+      id: newId,
+      title: title.isEmpty ? "New Mind Web" : title,
+      layoutStyle: layout,
+      nodes: [
+        MindNode(id: 'root_$newId', text: title.isEmpty ? "Central Idea" : title, x: 5000, y: 5000, colorHex: '0xFF0EA5E9', shape: 'rect', scale: 1.8)
+      ] 
+    );
+    systemData.mindMaps.add(newMap);
+    recalculateSystem();
+  }
+
+  void updateMindMap(MindMapData updatedMap) {
+    int index = systemData.mindMaps.indexWhere((m) => m.id == updatedMap.id);
+    if (index != -1) {
+      systemData.mindMaps[index] = updatedMap;
+      recalculateSystem();
+    }
+  }
+
+  void deleteMindMap(String id) {
+    systemData.mindMaps.removeWhere((m) => m.id == id);
+    recalculateSystem();
+  }
+
+  MindMapData generateDomainMindMap() {
+    List<MindNode> mapNodes = [];
+    String rootId = 'root_system_matrix';
+    
+    mapNodes.add(MindNode(id: rootId, text: 'HUNTER SYSTEM', x: 5000, y: 5000, colorHex: '0xFFEBFB7E', shape: 'rect', scale: 1.8));
+
+    void traverse(SkillNode node, String parentId) {
+      String safeId = 'node_${node.id}';
+      
+      mapNodes.firstWhere((n) => n.id == parentId).childrenIds.add(safeId);
+
+      String color = '0xFF2C2C2C'; 
+      if (node.type == 'domain') color = '0xFF0EA5E9'; 
+      if (node.progress >= 100.0 || node.completed) color = '0xFF00BFA5'; 
+
+      mapNodes.add(MindNode(
+        id: safeId,
+        text: node.name,
+        x: 5000, y: 5000, 
+        colorHex: color,
+        shape: node.type == 'domain' ? 'rect' : 'round',
+        scale: node.type == 'domain' ? 1.2 : 1.0,
+      ));
+
+      for (var child in node.children) {
+        traverse(child, safeId);
+      }
+    }
+
+    for (var domain in systemData.skills) {
+      traverse(domain, rootId);
+    }
+
+    return MindMapData(id: 'auto_domain_map', title: 'System Domain Matrix', layoutStyle: 'balanced', nodes: mapNodes);
   }
 }
