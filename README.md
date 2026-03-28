@@ -150,11 +150,11 @@ Plan your day with lethal precision.
 * Add daily tasks for Today, Tomorrow, or pick a specific date from the built-in calendar engine. 
 * **Tactical Postpone:** If the battlefield changes, swipe right on a task to access the Tactical Postpone action, pushing the quest to a future date, effectively altering its `assignedDate` property in the JSON array without breaking your active streak.
 
-### 🐉 Boss Raids (Epic Time-Boxed Goals)
+### 🎯 Epic Milestones (Time-Boxed Campaigns)
 Some goals require sustained effort over weeks or months. 
-* *Workflow:* Initiate a Boss Raid by setting a massive objective, an HP value (difficulty), and a strict Unix-timestamp deadline.
-* *Victory:* Claim Victory if you achieve it before the timer runs out, securing massive EXP injections.
-* *Defeat:* If the system clock passes the deadline, the Boss Raid is mathematically marked as a failure and permanently etched into your graveyard logs.
+* *Workflow:* Forge an Epic Milestone by setting a massive long-term objective, assigning a difficulty weight, and locking in a strict Unix-timestamp deadline.
+* *Conquest:* Claim victory if you achieve the objective before the countdown timer hits zero, securing a massive EXP injection to your core stats.
+* *Defeat:* If the system clock passes the deadline, the Milestone is mathematically marked as a failure and permanently etched into your graveyard logs as a missed opportunity.
 
 ### 🏆 Achievement Vault
 Unlock custom badges as you hit milestones. The System runs a silent background listener after every action to check conditions: 
