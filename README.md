@@ -1,208 +1,377 @@
-# 🌌 PROGRESSO SYSTEM
+# 🌌 PROGRESSO HQ: THE HUNTER SYSTEM
 
-> *"Human strength lies in the ability to change yourself." - Saitama*
+> *"Human strength lies in the ability to change yourself. The System is merely the ledger of that change." - Saitama*
 
-[![Flutter](https://img.shields.io/badge/Flutter-Cross--Platform-02569B?logo=flutter)](https://flutter.dev/)
-[![Version](https://img.shields.io/badge/Version-1.0.0--Genesis-EBFB7E?labelColor=171717)]()
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)]()
+<div align="center">
 
-**Progresso System** is a cross-platform, offline-first, gamified life-management Vault. It is designed to turn your real-world ambitions into tangible RPG mechanics. Built natively in Flutter, it tracks your physical conditioning, intellectual growth, deep work focus, and unwavering consistency.
+[![Flutter](https://img.shields.io/badge/Engine-Flutter_3.x-02569B?style=for-the-badge&logo=flutter)](https://flutter.dev/)
+[![Version](https://img.shields.io/badge/System_Version-v1.1.0_(Awakening)-EBFB7E?style=for-the-badge&labelColor=171717)]()
+[![Platform](https://img.shields.io/badge/Platform-Win_|_Lin_|_And-8A2BE2?style=for-the-badge)]()
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)]()
+[![Size](https://img.shields.io/badge/Vault_Size-Offline_First-4CAF50?style=for-the-badge)]()
+
+</div>
+
+**Progresso HQ** is a local-first, cross-platform, gamified life-management Vault. It is designed to ruthlessly track your real-world ambitions and translate them into tangible RPG mechanics. 
+
+Built natively in Flutter, it tracks your physical conditioning, intellectual growth, deep work focus, and unwavering consistency across all your devices without relying on third-party cloud servers. Your data belongs to you, secured on your local hardware, and synced peer-to-peer across your personal network.
 
 Welcome to the System, Hunter. Your awakening begins now.
 
 ---
 
-## 📸 PC System Interface
-
-<p align="center">
-    <img src="screenshots/7-user-panel.png" width="24%" alt="Hunter Status & Radar Chart" />
-    <img src="screenshots/1-domain.png" width="24%" alt="Domain & Skill Trees" />
-    <img src="screenshots/2-tasks.png" width="24%" alt="Daily Quest Board" />
-    <img src="screenshots/3-log.png" width="24%" alt="Boss Raids & System Log" />
-    <img src="screenshots/5-graph.png" width="24%" alt="Analytics & Progress Graph" />
-    <img src="screenshots/6-achievements.png" width="24%" alt="Achievement Vault" />
-    <img src="screenshots/8-settings.png" width="24%" alt="Achievement Vault" />
-</p>
-
-## 📸 Android System Interface
-
-<p align="center">
-    <img src="screenshots/mobile-screenshot.png" width="24%" alt="Mobile Cross-Platform View" />
-    <img src="screenshots/mobile-screenshot2.png" width="24%" alt="Mobile Cross-Platform View" />
-    <img src="screenshots/mobile-screenshot3.png" width="24%" alt="Mobile Cross-Platform View" />
-</p>
+## 📑 The Master Ledger
+1. [Visual Reconnaissance (System UI)](#-visual-reconnaissance-system-ui)
+2. [System Architecture & Philosophy](#-system-architecture--philosophy)
+3. [Core Mechanics: The Status Window](#-core-mechanics-the-status-window)
+4. [The Feature Arsenal](#-the-feature-arsenal)
+5. [v1.1.0: The Synchronization Architecture](#-v110-the-synchronization-architecture-p2p)
+6. [Hard Mode & The Penalty Zone](#-hard-mode--the-penalty-zone-logic)
+7. [Deployment & Installation](#-deployment--installation)
+8. [The Hunter's Journey (Onboarding)](#-the-hunters-journey-onboarding)
+9. [Developer Sandbox & Source Control](#-developer-sandbox--source-control)
+10. [Data Models & Technical Stack](#-data-models--technical-stack)
+11. [FAQ & Troubleshooting](#-faq--troubleshooting)
+12. [Roadmap & Future Horizons](#-roadmap--future-horizons)
 
 ---
 
-## 📑 Table of Contents
-1. [Core Mechanics: The Status Window](#-core-mechanics-the-status-window)
-2. [The Hunter's Journey (Getting Started)](#-the-hunters-journey-getting-started)
-3. [Feature Arsenal](#-feature-arsenal)
-4. [Installation Guide](#-installation-guide)
-5. [The Synchronization Protocol](#-the-synchronization-protocol)
-6. [Vault Backup & Restore](#-vault-backup--restore)
-7. [FAQ & Troubleshooting](#-faq--troubleshooting)
-8. [Technology Stack](#-technology-stack)
-9. [Developer & Source Control](#-developer--source-control)
+## 📸 Visual Reconnaissance (System UI)
+
+The System interface dynamically adapts its Canvas geometry based on the host Node. Below is the visual evidence of the Vault's capabilities.
+
+<details open>
+<summary><b>🖥️ Desktop Nodes (Windows / Linux) — 13 Core Interfaces</b> <i>[Click to Collapse]</i></summary>
+<br>
+<p align="center">
+  <img src="screenshots/01_domain_pc.png" width="32%" alt="Domain Architecture" />
+  <img src="screenshots/02_tasks_pc.png" width="32%" alt="Daily Tasks" />
+  <img src="screenshots/03_questlog_pc.png" width="32%" alt="Quest Log" />
+</p>
+<p align="center">
+  <img src="screenshots/04_analytics_pc.png" width="32%" alt="System Analytics" />
+  <img src="screenshots/05_achievements_pc.png" width="32%" alt="Achievement Vault" />
+  <img src="screenshots/06_mindmap_pc.png" width="32%" alt="Mind Web Engine" />
+  
+</p>
+<p align="center">
+  <img src="screenshots/07_mindmap_balanced_pc.png" width="32%" alt="Balanced Mind Map" />
+  <img src="screenshots/08_mindmap_timeline_pc.png" width="32%" alt="Timeline Mind Map" />
+  <img src="screenshots/09_mindmap_viewdomain.png" width="24%" alt="View Domain Map" />
+</p>
+<p align="center">
+  <img src="screenshots/10_music_pc.png" width="24%" alt="System Music Player" />
+  <img src="screenshots/11_manual_pc.png" width="24%" alt="Hunter Manual" />
+  <img src="screenshots/12_settings_pc.png" width="24%" alt="System Settings" />
+  <img src="screenshots/13_profile_pc.png" width="32%" alt="Hunter Profile" />
+</p>
+</details>
+
+<details>
+<summary><b>📱 Mobile Nodes (Android) — 12 Core Interfaces</b> <i>[Click to Expand]</i></summary>
+<br>
+<p align="center">
+  <img src="screenshots/a_domain_android.jpeg" width="24%" alt="Mobile Domain" />
+  <img src="screenshots/b_tasks_android.jpeg" width="24%" alt="Mobile Tasks" />
+  <img src="screenshots/c_logs_android.jpeg" width="24%" alt="Mobile Logs" />
+  <img src="screenshots/d_analytics_android.jpeg" width="24%" alt="Mobile Analytics" />
+</p>
+<p align="center">
+  <img src="screenshots/e_achievements_android.jpeg" width="24%" alt="Mobile Achievements" />
+  <img src="screenshots/f_mindmap_android.jpeg" width="24%" alt="Mobile Mind Web" />
+  <img src="screenshots/g_mindmap_create_android.jpeg" width="24%" alt="Create Mind Map" />
+</p>
+<p align="center">
+  <img src="screenshots/h_mindmap_viewdomain_android.jpeg" width="24%" alt="Mobile View Domain" />
+  <img src="screenshots/i_manual_android.jpeg" width="24%" alt="Mobile Manual" />
+  <img src="screenshots/j_music_android.jpeg" width="24%" alt="Mobile Music Player" />
+  <img src="screenshots/k_settiings_android.jpeg" width="24%" alt="Mobile Settings" />
+  <img src="screenshots/l_profile_android.jpeg" width="24%" alt="Mobile Profile" />
+</p>
+</details>
+
+<details>
+<summary><b>📱 Mobile Nodes (Android) — 12 Core Interfaces</b> <i>[Click to Expand]</i></summary>
+<br>
+<p align="center">
+  <img src="screenshots/mobile/01_status.png" width="24%" alt="Mobile 1" />
+  <img src="screenshots/mobile/02_quests.png" width="24%" alt="Mobile 2" />
+  <img src="screenshots/mobile/03_mindweb.png" width="24%" alt="Mobile 3" />
+  <img src="screenshots/mobile/04_analytics.png" width="24%" alt="Mobile 4" />
+</p>
+<p align="center">
+  <img src="screenshots/mobile/05_boss.png" width="24%" alt="Mobile 5" />
+  <img src="screenshots/mobile/06_achievements.png" width="24%" alt="Mobile 6" />
+  <img src="screenshots/mobile/07_timer.png" width="24%" alt="Mobile 7" />
+  <img src="screenshots/mobile/08_settings.png" width="24%" alt="Mobile 8" />
+</p>
+<p align="center">
+  <img src="screenshots/mobile/09_radar.png" width="24%" alt="Mobile 9" />
+  <img src="screenshots/mobile/10_penalty.png" width="24%" alt="Mobile 10" />
+  <img src="screenshots/mobile/11_domain.png" width="24%" alt="Mobile 11" />
+  <img src="screenshots/mobile/12_sync.png" width="24%" alt="Mobile 12" />
+</p>
+</details>
+
+---
+
+## 🏛️ System Architecture & Philosophy
+
+The modern world is obsessed with cloud synchronization. Progresso HQ violently rejects this paradigm. 
+
+### The Local-First Manifesto
+* **Absolute Privacy:** Your goals, your failures, and your daily habits are stored exclusively on your hardware's internal storage (`SharedPreferences` & local Documents directory). No tracking, no telemetry, no centralized database.
+* **Zero Latency:** Because the System doesn't wait for server responses, interactions (completing a quest, rendering a complex mind map) happen in under 16 milliseconds (60+ FPS).
+* **Guaranteed Uptime:** You can manage your life, log your focus hours, and view your stats deep in the wilderness with zero internet connection. 
 
 ---
 
 ## 📊 Core Mechanics: The Status Window
 
-Your real-world actions directly influence your System Attributes. You can view your current build at any time in the **User Profile Status Window**, which generates a dynamic Radar Chart of your capabilities.
+Your real-world actions directly influence your System Attributes. You can view your current build at any time in the **User Profile Status Window**, which generates a dynamic Radar Chart (painted pixel-by-pixel via Flutter's `CustomPaint` engine).
 
-* **💪 STR (Strength):** Tracks your physical conditioning. Logging *Exercise Hours* directly increases your raw power.
-* **🧠 INT (Intelligence):** Tracks your mental grind. Logging *Learn/Work Hours* directly expands your intellect.
-* **⚡ AGI (Agility):** Tracks your execution speed. Completing *Daily Quests* (To-Do list items) boosts your agility.
-* **🛡️ WIL (Willpower):** Tracks your unbreakable discipline. Your Willpower is calculated as `Current Daily Streak × 5`. If you break the chain, your streak resets, and your Willpower crashes. Never miss a day.
+### The Mathematical Formulas
+* **💪 STR (Strength):** Tracks physical conditioning.
+  * *Workflow:* Log *Exercise Hours* in the Analytics Tab.
+  * *Math:* Every 1 hour logged = +10 STR EXP.
+* **🧠 INT (Intelligence):** Tracks your mental grind and skill acquisition.
+  * *Workflow:* Complete *Deep Work Timer* sessions linked to Cognitive Domains.
+  * *Math:* Every 1 hour logged = +10 INT EXP.
+* **⚡ AGI (Agility):** Tracks execution speed and daily throughput.
+  * *Workflow:* Complete *Daily Quests* from your task board.
+  * *Math:* Base completion = +5 AGI EXP. Completing tasks *before* 12:00 PM yields a 1.5x early-bird multiplier.
+* **🛡️ WIL (Willpower):** Tracks unbreakable discipline. This is your most volatile stat.
+  * *Workflow:* Do not miss a day of completing at least one task.
+  * *Math:* Calculated linearly as `Current Unbroken Streak × 5`. 
+  * *Risk:* If you break the chain, your streak resets to 0, and your Willpower crashes instantly. Never miss a day.
 
-**Leveling Up:** Your overall "Awakened Level" is determined by your current unbroken daily streak.
+### Awakened Level System
+Your overall "Awakened Level" is not an average of your stats; it is mathematically determined by the consistency of your grind. 
+`Base Level = 1 + (Total Lifetime Quests Completed / 10) + (Max Historical Streak * 0.5)`
 
 ---
 
-## 🗺️ The Hunter's Journey (Getting Started)
+## ⚔️ The Feature Arsenal
 
-**Day 1: System Initialization**
-1. **Set Your Identity:** Navigate to the Status Window. Enter your Hunter Name and upload your Profile Emblem.
-2. **Establish Domains:** Go to the Domains Tab. Create 2 or 3 high-level categories for your life (e.g., `University`, `Fitness`, `Programming`).
-3. **Write Your First Quests:** Go to the Daily Tasks Tab. Assign yourself 3 tasks for today.
-4. **Log Your First Hours:** Use the Analytics tab to log any hours you spent exercising or studying today. Watch your STR and INT stats rise.
-5. **Survive to Midnight:** Complete your tasks before the day ends to protect your Streak and level up.
-
----
-
-## ⚔️ Feature Arsenal
-
-### 📁 Domain & Skill Trees
-Break down your massive life goals into manageable Skill Trees. 
-* Create **Root Domains** and nest **Sub-Directories** or specific **Skills** inside them.
-* Track your progression from 0% to 100% mastery. Each Domain visually grades your progress from E-Rank (Red) up to S-Rank (Gold).
+### 🕸️ The Mind Web Engine (v1.1.0 Innovation)
+Break down massive life goals into interactive visual maps. 
+* **The Logic:** You create **Root Domains** (e.g., Programming). Inside, you nest **Sub-Directories** (e.g., Web Dev, Mobile Dev). Inside those, you nest **Skills** (e.g., Flutter, React).
+* **Layout Mathematics:** The System algorithms calculate parent-child node coordinates to generate three distinct map styles:
+  * *Org-Chart:* Top-down strict hierarchy.
+  * *Timeline:* Left-to-right sequential prerequisites.
+  * *Hub:* Centralized radial node distribution.
+* **Visual Mastery:** Track progression from 0% to 100% mastery. The UI dynamically interpolates colors from E-Rank (Red/Black) up to S-Rank (Gold/White) based on the completion ratio of sub-skills.
 
 ### ⏱️ Deep Work Focus Timer
-Select any Skill from your Domain Tree and initiate a Focus Session. The System overlay tracks your deep work and automatically logs the hours to your INT or STR stats upon completion.
+Select any Skill from your Mind Web and initiate a Focus Session. 
+* *Workflow:* The System overlay takes over your screen, utilizing Flutter's `TickerProvider` to maintain frame-perfect countdowns. 
+* *Reward:* Upon completion, the elapsed time is automatically written to the local SharedPreferences ledger, instantly updating your INT or STR stats and generating a log entry.
 
 ### 📅 Daily Quest Board & Tactical Postpone
-Plan your day with precision. Add daily tasks for Today, Tomorrow, or pick a specific date from the built-in calendar. If life happens, use **Tactical Postpone** to push a quest to a future date with two clicks.
+Plan your day with lethal precision. 
+* Add daily tasks for Today, Tomorrow, or pick a specific date from the built-in calendar engine. 
+* **Tactical Postpone:** If the battlefield changes, swipe right on a task to access the Tactical Postpone action, pushing the quest to a future date, effectively altering its `assignedDate` property in the JSON array without breaking your active streak.
 
 ### 🐉 Boss Raids (Epic Time-Boxed Goals)
-Some goals require sustained effort over weeks or months. Initiate a Boss Raid by setting a massive objective and a strict deadline. 
-* Claim **Victory** if you achieve it before the timer runs out. 
-* **Retreat** (Fail) if the deadline passes. 
-
-### ☠️ Hard Mode: The Penalty Zone
-For those who need extreme loss aversion. Enable **Hard Mode** in the Settings. 
-* If you fail to complete your assigned Daily Quests before midnight, the System will lock you out. 
-* You will be thrown into the **Penalty Zone** and forced to accept a physical punishment quest before the System unlocks your Vault again.
+Some goals require sustained effort over weeks or months. 
+* *Workflow:* Initiate a Boss Raid by setting a massive objective, an HP value (difficulty), and a strict Unix-timestamp deadline.
+* *Victory:* Claim Victory if you achieve it before the timer runs out, securing massive EXP injections.
+* *Defeat:* If the system clock passes the deadline, the Boss Raid is mathematically marked as a failure and permanently etched into your graveyard logs.
 
 ### 🏆 Achievement Vault
-Unlock dozens of custom badges as you hit milestones. Reach 100% Global Progress, log 10,000 hours, maintain a 365-day streak, and rise from an F-Rank Recruit to a National Level Monarch.
+Unlock custom badges as you hit milestones. The System runs a silent background listener after every action to check conditions: 
+* Reaching 100% Global Progress in a Domain.
+* Logging 10,000 hours total.
+* Maintaining a 365-day streak.
+* Rising from an F-Rank Recruit to a National Level Monarch.
 
 ---
 
-## 🚀 Installation Guide
+## 📡 v1.1.0: The Synchronization Architecture (P2P)
 
-The Progresso System is fully compiled and ready for deployment across all major operating systems. Navigate to the **[Releases](../../releases)** tab to download the latest artifacts.
+How do you sync a Desktop and Mobile app without a cloud database? By turning your devices into local network servers.
 
-### 📱 Android
-1. Download the `progresso_system_android.apk` file.
-2. Open the file to install it. *(Note: You may need to grant permission to "Install unknown apps" in Android settings).*
+### The Master/Slave Node Hierarchy
+To absolutely prevent data collisions and duplicated arrays, Progresso utilizes a strict, unidirectional data flow:
+1. **Master Node (Source of Truth):** You designate one device (usually your PC) as the Master. Its internal JSON ledger is considered absolute.
+2. **Slave Nodes (Field Devices):** Your mobile devices act as Slaves. 
+3. **The Overwrite Protocol:** When a sync is initiated, the Master's entire `SystemData` state is serialized, transmitted, and ruthlessly overwrites the Slave node's state. There is no complex merging—only assimilation to the Master's state.
 
-### 🪟 Windows
-1. Download the `progresso_system_windows_x64.zip` file.
-2. Extract the folder anywhere on your PC.
-3. Open the extracted folder and double-click `progresso_system.exe`.
+### The UDP/mDNS Radar Scan Workflow
+Gone are the days of manually typing `192.168.x.x` IP addresses. 
+1. **The Pulse:** Ensure both devices are on the same Wi-Fi network. Open the Sync Panel on both.
+2. **The Beacon:** The Master Node opens a background `ServerSocket` and begins broadcasting a UDP Datagram containing its identity (`"PROGRESSO_MASTER_NODE_ALIVE"`).
+3. **The Catch:** The Slave node listens on the designated UDP port. When it catches the beacon, it extracts the Master's local IP address.
+4. **The Handshake:** The Slave node makes an HTTP GET request to the Master's exposed REST API endpoint.
+5. **The Payload:** The Master compresses the entire SharedPreferences JSON (including Base64 encoded profile pictures) and transmits it over the local LAN in milliseconds. 
+6. **Rehydration:** The Slave node decrypts the payload, updates its local storage, and triggers a global `notifyListeners()` via Provider to instantly refresh the UI.
 
-### 🐧 Linux
-**Debian / Ubuntu / Linux Mint:**
+---
+
+## ☠️ Hard Mode & The Penalty Zone Logic
+
+For those who need extreme loss aversion.
+
+* **The Trigger:** If Hard Mode is enabled in settings, the `SystemController` runs a check every time the app is brought to the foreground. It checks if `DateTime.now()` has passed `23:59:59` of the previous day, AND if the `dailyTasks` array contains items where `isCompleted == false`.
+* **The Lockout:** If triggered, the System physically blocks the Flutter `Navigator`. It pushes an impenetrable, full-screen overlay route called the **Penalty Zone**.
+* **The Escape:** You cannot access your Dashboard, your Stats, or your Settings. You are forced to accept a physical punishment quest (e.g., 100 Pushups, 5km run). Only by clicking the red "I HAVE SURVIVED" button do you trigger the boolean flag that destroys the overlay and grants you access to your Vault again.
+
+---
+
+## 🚀 Deployment & Installation
+
+The Progresso System is fully compiled and ready for deployment. Navigate to the **[Releases](../../releases)** tab to download the latest artifacts for your operating system.
+
+### 🪟 Windows (.exe)
+1. Download `Progresso-HQ-Windows-v1.1.0.zip`.
+2. Extract the entire folder anywhere on your PC. *(Crucial: Do not drag the `.exe` out of the folder, it requires the surrounding `.dll` data files).*
+3. Run `progresso_system.exe`.
+
+### 🐧 Linux (Native Binaries)
+**Debian / Ubuntu / Linux Mint (.deb):**
 ```bash
-sudo dpkg -i progresso_1.0.0_amd64.deb
+# Install the Debian package directly via the package manager
+sudo dpkg -i progresso-system_1.1.0_amd64.deb
 ```
-**Arch Linux / Other Distros:**
+**Arch Linux (Source Tarball):**
+Download `progresso-system-arch-release.tar.gz` and build the native `.pkg.tar.zst` using the provided blueprint:
 ```bash
-tar -xf progresso_system_linux_x64.tar.gz
-cd bundle
-./progresso_system
+tar -xzf progresso-system-arch-release.tar.gz
+cd progresso-system-arch-release
+makepkg -si
 ```
 
----
-
-## 📡 The Synchronization Protocol (Local Wi-Fi)
-
-Progresso respects your privacy. It uses **Zero Cloud Databases**; your data belongs entirely to you. To keep your PC and Phone synced:
-
-1. Ensure both devices are connected to the **same Wi-Fi network**.
-2. Open **Settings** on the device with the *most up-to-date* data (the Host).
-3. Look at the `WI-FI AUTO-SYNC` module to find the Host's **System IP** (e.g., `192.168.1.7`).
-4. Open Settings on your second device (the Client).
-5. Type the Host's IP address into the Target IP box and click **INITIATE SYNC**.
-6. The System will compare Epoch timestamps and securely overwrite the older data over your local LAN.
+### 📱 Android (.apk)
+1. Download `Progresso_HQ_Vault_v1.1.0.apk` directly to your phone.
+2. Open the file via your file manager. 
+3. *(Note: Ensure "Install from Unknown Sources" is enabled in your Android security settings).*
 
 ---
 
-## 💾 Vault Backup & Restore
+## 🗺️ The Hunter's Journey (Onboarding)
 
-Always secure your progress. 
-1. Go to **Settings > Vault Backup**.
-2. Click **EXPORT VAULT DATA** to save your entire System history as a portable `.prg` JSON file. 
-3. If you move to a new device or wipe your system, use **RESTORE FROM BACKUP** and load your `.prg` file to instantly recover your Hunter Status.
+**Day 1: System Initialization Protocol**
+1. **Set Your Identity:** Navigate to the Status Window. Enter your Hunter Name and upload your Profile Emblem.
+2. **Forge the Mind Web:** Go to the Domains Tab. Create 3 high-level categories for your life (e.g., `University`, `Fitness`, `Programming`).
+3. **Write Your First Quests:** Go to the Daily Tasks Tab. Assign yourself 3 tasks for today.
+4. **Log Your First Hours:** Use the Analytics tab to log 1 hour of physical exercise. Watch your STR rise.
+5. **Survive to Midnight:** Complete your tasks before the day ends to establish your Streak (WIL = 5).
+
+**Day 7: The Awakening**
+By day 7, if you haven't missed a day, your WIL will sit at 35. You will unlock your first Achievement Badge, and your overall Awakened Level will increase, unlocking higher-tier UI colors.
+
+---
+
+## 🛠️ Developer Sandbox & Source Control
+
+For developers looking to compile the System natively, adapt the UI algorithms, or contribute to the offline architecture.
+
+### 1. Environment Setup
+Ensure you have the [Flutter SDK](https://flutter.dev/docs/get-started/install) installed and set to the `stable` channel.
+```bash
+git clone [https://github.com/gokulgowdat/progresso.git](https://github.com/gokulgowdat/progresso.git)
+cd progresso
+flutter clean && flutter pub get
+```
+
+### 2. Repository Architecture
+```text
+progresso_system/
+├── android/               # Native Android build scripts (Gradle)
+├── linux/                 # Native Linux C++ runners & CMake
+├── windows/               # Native Windows C++ runners & MSVC
+├── assets/                # Local fonts and default SVGs/PNGs
+├── lib/                   # The Core Dart Codebase
+│   ├── models/            # JSON Serialization (Task, Domain, SystemData)
+│   ├── screens/           # Main scaffold routes (Dashboard, MindMapEditor)
+│   ├── tabs/              # Sub-routes for the bottom navigation bar
+│   ├── services/          # Business Logic (SyncEngine, StorageEngine)
+│   ├── theme/             # Dynamic Dark/Light mode color palettes
+│   └── widgets/           # Reusable UI components (DomainCard, TimerOverlay)
+├── .github/workflows/     # CI/CD Windows Cloud Forge Pipeline
+└── pubspec.yaml           # Flutter package dependencies
+```
+
+### 3. Forging Local Artifacts from Source
+
+**Android APK (ARM64 Optimized):**
+```bash
+flutter build apk --release --target-platform android-arm64
+```
+
+**Linux Native Executable:**
+```bash
+flutter build linux --release
+```
+
+**Windows (.exe) via CI/CD:**
+This repository utilizes **GitHub Actions**. By pushing code to the `main` branch, you can trigger the *Windows Release Forge* workflow from the Actions tab. A dedicated cloud server will compile the C++ binaries and automatically generate a downloadable `.zip` artifact in the workflow summary.
+
+---
+
+## 🗄️ Data Models & Technical Stack
+
+### State Management: `Provider`
+The entire application state is held in a single `SystemController` injected at the root of the app. This allows deeply nested Mind Map nodes to instantly update the global Status Window without expensive prop-drilling.
+
+### The JSON Payload
+Here is a simplified look at how a Hunter's life is serialized and saved locally (and transmitted during LAN Sync):
+```json
+{
+  "hunterName": "Gokul",
+  "isDarkMode": true,
+  "currentStreak": 14,
+  "stats": {
+    "str": 140,
+    "int": 320,
+    "agi": 85
+  },
+  "mindMaps": [
+    {
+      "id": "dom_001",
+      "title": "Computer Science",
+      "layoutStyle": "org",
+      "nodes": [ ... ]
+    }
+  ],
+  "dailyTasks": [
+    {
+      "id": "tsk_001",
+      "title": "Push Code to GitHub",
+      "isCompleted": true,
+      "assignedDate": "2026-03-28T00:00:00.000"
+    }
+  ]
+}
+```
 
 ---
 
 ## ❓ FAQ & Troubleshooting
 
 **Q: My Wi-Fi Sync says "Device not found or blocked by firewall."**
-> **A:** Ensure both devices are on the exact same Wi-Fi. If you are syncing to a Windows PC, Windows Defender Firewall might block port `8080`. Go to your Firewall settings and allow `progresso_system.exe` to communicate on Private Networks.
+> **A:** The UDP Radar relies on local network broadcasting. If you are syncing to a Windows PC, Windows Defender Firewall might aggressively block port `8080` or UDP broadcasts. Go to your Firewall settings, click "Allow an app through firewall", and ensure `progresso_system.exe` has checkmarks for both Private and Public networks. Also, ensure your Wi-Fi router doesn't have "Client Isolation" turned on.
 
-**Q: I turned on Hard Mode and now I'm locked out!**
-> **A:** That is the point of the Penalty Zone. You must click the red "I HAVE SURVIVED" button acknowledging you have completed your punishment before the System will grant you access to your data again.
+**Q: I turned on Hard Mode and now I'm completely locked out. How do I bypass it?**
+> **A:** You don't. That is the fundamental design of the Penalty Zone. Do your pushups, click "I HAVE SURVIVED", and do not fail your daily quests again.
 
-**Q: Can I change my Rank manually?**
-> **A:** No. The System does not lie. Your rank is mathematically tied to the actual work you log.
-
----
-
-## 💻 Technology Stack
-* **Framework:** Flutter (Dart)
-* **State Management:** Provider
-* **Data Persistence:** SharedPreferences (Local JSON Engine)
-* **Networking:** Dart `dart:io` Http Server (Local LAN Sync)
-* **UI Elements:** Custom Canvas Painters (Radar Charts), Native File Pickers.
+**Q: Why isn't my profile picture syncing to my phone?**
+> **A:** Image files cannot be sent directly via standard JSON text. Progresso handles this by intercepting your image upload, converting the raw bytes into a `Base64` string, and saving it as a massive text block in the JSON file. If your image was massive (e.g., a 10MB 4K photo), the payload might be too large for the current buffer. Compress your profile image to a smaller JPEG and try again.
 
 ---
 
-## 🛠️ Developer & Source Control
+## 🔮 Roadmap & Future Horizons
 
-For contributors looking to compile the System from source.
+The System is never truly complete. Here are the planned architectural upgrades for future versions:
 
-### Rebuilding Artifacts from Source
-
-**1. Android APK:**
-```bash
-flutter clean && flutter pub get
-flutter build apk --release
-```
-
-**2. Linux (.deb & .tar.gz):**
-```bash
-flutter clean && flutter pub get
-flutter build linux --release
-
-# Forge Arch Tarball:
-cd build/linux/x64/release/ && tar -czvf progresso_system_linux_x64.tar.gz bundle/
-
-# Forge Debian Installer:
-dpkg-deb --build progresso_1.0.0_amd64
-```
-
-**3. Windows (.exe via GitHub Actions):**
-Push your code to the `main` branch, navigate to the **Actions** tab on GitHub, select **Windows Cloud Forge**, and click **Run Workflow**.
-
-### Pushing Code Updates
-```bash
-git add .
-git commit -m "Update: Describe your changes here"
-git push origin main
-```
+* **[ ] v1.2.0 - The Armory Update:** Implement an inventory system where completing specific Boss Raids drops "Loot" (custom cosmetic borders for your Radar Chart or UI themes).
+* **[ ] v1.3.0 - The Guild Protocol:** Expand the LAN sync to support multi-hunter data viewing. Allow devices on the same network to view each other's Awakened Level and compare Stats.
+* **[ ] v1.4.0 - Data Export Engine:** Build a CSV exporter so Hunters can pull their raw Analytics data into Excel or Python for advanced statistical tracking.
+* **[ ] v1.5.0 - iOS Deployment:** Adapt the native Android/Linux architecture to support Apple's strict filesystem constraints and release the `.ipa` Vault for iPhone Hunters.
 
 ---
-*Developed by gokulgowdat and ZetaChrome (Abel M Punnoose). Embrace the grind.*
+
+<div align="center">
+  <i>Forged by gokulgowdat and ZetaChrome (Abel M Punnoose).</i><br>
+  <b>Embrace the grind. Protect your streak. Awaken your potential.</b>
+</div>
