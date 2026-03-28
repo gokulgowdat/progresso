@@ -90,28 +90,6 @@ The System interface dynamically adapts its Canvas geometry based on the host No
 </p>
 </details>
 
-<details>
-<summary><b>📱 Mobile Nodes (Android) — 12 Core Interfaces</b> <i>[Click to Expand]</i></summary>
-<br>
-<p align="center">
-  <img src="screenshots/mobile/01_status.png" width="24%" alt="Mobile 1" />
-  <img src="screenshots/mobile/02_quests.png" width="24%" alt="Mobile 2" />
-  <img src="screenshots/mobile/03_mindweb.png" width="24%" alt="Mobile 3" />
-  <img src="screenshots/mobile/04_analytics.png" width="24%" alt="Mobile 4" />
-</p>
-<p align="center">
-  <img src="screenshots/mobile/05_boss.png" width="24%" alt="Mobile 5" />
-  <img src="screenshots/mobile/06_achievements.png" width="24%" alt="Mobile 6" />
-  <img src="screenshots/mobile/07_timer.png" width="24%" alt="Mobile 7" />
-  <img src="screenshots/mobile/08_settings.png" width="24%" alt="Mobile 8" />
-</p>
-<p align="center">
-  <img src="screenshots/mobile/09_radar.png" width="24%" alt="Mobile 9" />
-  <img src="screenshots/mobile/10_penalty.png" width="24%" alt="Mobile 10" />
-  <img src="screenshots/mobile/11_domain.png" width="24%" alt="Mobile 11" />
-  <img src="screenshots/mobile/12_sync.png" width="24%" alt="Mobile 12" />
-</p>
-</details>
 
 ---
 
