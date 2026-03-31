@@ -18,10 +18,11 @@ class NotificationEngine {
       '@mipmap/launcher_icon'
     );
 
-    // 3. WINDOWS INITIALIZATION (Fixed: Added the required 'appUserModelId')
+    // 3. WINDOWS INITIALIZATION (Fixed: Added the strictly required 'guid' parameter)
     const WindowsInitializationSettings initializationSettingsWindows = WindowsInitializationSettings(
       appName: 'Progresso HQ', 
-      appUserModelId: 'com.gokulgowdat.progressohq', // <-- The final key Windows was demanding
+      appUserModelId: 'com.gokulgowdat.progressohq',
+      guid: 'A3A69A1C-1A69-42E3-A5B4-6987E84B1F2D', // <-- The final registry key Windows demands
     );
 
     // 4. Combine all platform settings into the master payload
