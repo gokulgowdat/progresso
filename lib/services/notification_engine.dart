@@ -8,18 +8,27 @@ class NotificationEngine {
   static Future<void> init() async {
     if (_isInitialized) return;
 
-    // Linux Initialization
-    const LinuxInitializationSettings initializationSettingsLinux = LinuxInitializationSettings(defaultActionName: 'Open System');
+    // 1. Linux Initialization
+    const LinuxInitializationSettings initializationSettingsLinux = LinuxInitializationSettings(
+      defaultActionName: 'Open System'
+    );
     
-    // FIX: Changed 'ic_launcher' to 'launcher_icon' to match your Android manifest
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/launcher_icon');
+    // 2. Android Initialization (Matching your manifest)
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings(
+      '@mipmap/launcher_icon'
+    );
 
+    // 3. WINDOWS INITIALIZATION (The missing piece that caused the crash)
+    const WindowsInitializationSettings initializationSettingsWindows = WindowsInitializationSettings();
+
+    // 4. Combine all platform settings into the master payload
     const InitializationSettings initializationSettings = InitializationSettings(
       linux: initializationSettingsLinux,
       android: initializationSettingsAndroid,
+      windows: initializationSettingsWindows, // Added Windows Payload
     );
 
-    // FIX: The parameter name in v18+ is 'settings', not 'initializationSettings'
+    // Initialize the plugin with the master settings
     await _notificationsPlugin.initialize(
       settings: initializationSettings,
     );
@@ -28,18 +37,22 @@ class NotificationEngine {
 
   static Future<void> showInstantNotification({required int id, required String title, required String body}) async {
     const LinuxNotificationDetails linuxPlatformChannelSpecifics = LinuxNotificationDetails();
+    
     const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
       'hunter_system_alerts', 'System Alerts',
       channelDescription: 'Alerts for daily quests and system updates',
       importance: Importance.max, priority: Priority.high,
     );
+
+    // Add Windows specific details so the alerts display properly in the Windows Action Center
+    const WindowsNotificationDetails windowsPlatformChannelSpecifics = WindowsNotificationDetails();
     
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       linux: linuxPlatformChannelSpecifics, 
-      android: androidPlatformChannelSpecifics
+      android: androidPlatformChannelSpecifics,
+      windows: windowsPlatformChannelSpecifics, // Added Windows Platform Specifics
     );
 
-    // Using the v18+ Named Parameter syntax for the show() function
     await _notificationsPlugin.show(
       id: id,
       title: title,
