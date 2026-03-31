@@ -18,14 +18,16 @@ class NotificationEngine {
       '@mipmap/launcher_icon'
     );
 
-    // 3. WINDOWS INITIALIZATION (The missing piece that caused the crash)
-    const WindowsInitializationSettings initializationSettingsWindows = WindowsInitializationSettings();
+    // 3. WINDOWS INITIALIZATION (Fixed: Added the strictly required 'appName' parameter)
+    const WindowsInitializationSettings initializationSettingsWindows = WindowsInitializationSettings(
+      appName: 'Progresso HQ', // <-- THIS is what the Windows compiler was begging for
+    );
 
     // 4. Combine all platform settings into the master payload
     const InitializationSettings initializationSettings = InitializationSettings(
       linux: initializationSettingsLinux,
       android: initializationSettingsAndroid,
-      windows: initializationSettingsWindows, // Added Windows Payload
+      windows: initializationSettingsWindows,
     );
 
     // Initialize the plugin with the master settings
@@ -50,7 +52,7 @@ class NotificationEngine {
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       linux: linuxPlatformChannelSpecifics, 
       android: androidPlatformChannelSpecifics,
-      windows: windowsPlatformChannelSpecifics, // Added Windows Platform Specifics
+      windows: windowsPlatformChannelSpecifics,
     );
 
     await _notificationsPlugin.show(
