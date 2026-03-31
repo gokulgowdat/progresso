@@ -8,47 +8,54 @@ class NotificationEngine {
   static Future<void> init() async {
     if (_isInitialized) return;
 
-    // 1. Linux Initialization
-    const LinuxInitializationSettings initializationSettingsLinux = LinuxInitializationSettings(
-      defaultActionName: 'Open System'
-    );
-    
-    // 2. Android Initialization (Matching your manifest)
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings(
-      '@mipmap/launcher_icon'
-    );
+    try {
+      const LinuxInitializationSettings initializationSettingsLinux = LinuxInitializationSettings(
+        defaultActionName: 'Open System'
+      );
+      
+      const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings(
+        '@mipmap/launcher_icon'
+      );
 
-    // 3. WINDOWS INITIALIZATION (Fixed: Added the strictly required 'guid' parameter)
-    const WindowsInitializationSettings initializationSettingsWindows = WindowsInitializationSettings(
-      appName: 'Progresso HQ', 
-      appUserModelId: 'com.gokulgowdat.progressohq',
-      guid: 'A3A69A1C-1A69-42E3-A5B4-6987E84B1F2D', // <-- The final registry key Windows demands
-    );
+      const WindowsInitializationSettings initializationSettingsWindows = WindowsInitializationSettings(
+        appName: 'Progresso HQ', 
+        appUserModelId: 'com.gokulgowdat.progressohq',
+        guid: 'A3A69A1C-1A69-42E3-A5B4-6987E84B1F2D', 
+      );
 
-    // 4. Combine all platform settings into the master payload
-    const InitializationSettings initializationSettings = InitializationSettings(
-      linux: initializationSettingsLinux,
-      android: initializationSettingsAndroid,
-      windows: initializationSettingsWindows,
-    );
+      const InitializationSettings initializationSettings = InitializationSettings(
+        linux: initializationSettingsLinux,
+        android: initializationSettingsAndroid,
+        windows: initializationSettingsWindows,
+      );
 
-    // Initialize the plugin with the master settings
-    await _notificationsPlugin.initialize(
-      settings: initializationSettings,
-    );
-    _isInitialized = true;
+      await _notificationsPlugin.initialize(
+        settings: initializationSettings,
+      );
+      _isInitialized = true;
+      print("SYSTEM LOG: Notification Engine Online.");
+      
+    } catch (e) {
+      // THE ARMOR PLATE: If Wine/Windows rejects the notification hook, we catch it here.
+      // We leave _isInitialized as false, so the app knows not to try sending alerts, 
+      // but WE DO NOT CRASH.
+      print("SYSTEM WARNING: OS rejected Notification Engine. Running in silent mode. Error: $e");
+    }
   }
 
   static Future<void> showInstantNotification({required int id, required String title, required String body}) async {
+    // If the engine failed to initialize (e.g., in Bottles), silently abort the alert so it doesn't crash.
+    if (!_isInitialized) {
+      print("SYSTEM WARNING: Alert suppressed (Engine offline) -> $title");
+      return; 
+    }
+
     const LinuxNotificationDetails linuxPlatformChannelSpecifics = LinuxNotificationDetails();
-    
     const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
       'hunter_system_alerts', 'System Alerts',
       channelDescription: 'Alerts for daily quests and system updates',
       importance: Importance.max, priority: Priority.high,
     );
-
-    // Add Windows specific details so the alerts display properly in the Windows Action Center
     const WindowsNotificationDetails windowsPlatformChannelSpecifics = WindowsNotificationDetails();
     
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
@@ -65,7 +72,6 @@ class NotificationEngine {
     );
   }
 
-  // Simulates a scheduled notification
   static Future<void> scheduleTaskReminder(DailyTask task) async {
     await showInstantNotification(
       id: task.id.hashCode,
