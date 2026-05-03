@@ -3,7 +3,7 @@ name: Windows Release Forge
 on:
   push:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Allows you to trigger it manually from the website
+  workflow_dispatch: 
 
 jobs:
   build:
@@ -27,5 +27,5 @@ jobs:
     - name: Upload Finished Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Progresso-HQ-Windows-v1.1.0
+        name: Progresso-HQ-Windows-v1.2.0
         path: build\windows\x64\runner\Release\
