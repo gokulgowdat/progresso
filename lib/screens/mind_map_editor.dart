@@ -26,7 +26,6 @@ class _MindMapEditorState extends State<MindMapEditor> {
     currentMap = MindMapData.fromJson(widget.mapData.toJson());
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // FIX: Force the physics engine to run once on startup, even for Read-Only Domain maps!
       _autoLayoutTree(bypassReadOnly: true);
       _centerCameraOnRoot();
     });
@@ -37,7 +36,6 @@ class _MindMapEditorState extends State<MindMapEditor> {
       if (!mounted) return;
       final screenSize = MediaQuery.of(context).size;
       
-      // Mother Node is absolutely anchored
       double rootCenterX = 5000.0 + 100.0; 
       double rootCenterY = 5000.0 + 40.0; 
 
@@ -60,7 +58,6 @@ class _MindMapEditorState extends State<MindMapEditor> {
       var parent = currentMap.nodes.firstWhere((n) => n.id == selectedNodeId);
       String newId = DateTime.now().millisecondsSinceEpoch.toString();
       
-      // Default children to standard scale (1.0), avoiding inherited Epic scale
       double newScale = parent.scale == 1.8 ? 1.0 : parent.scale;
       
       currentMap.nodes.add(MindNode(id: newId, text: "New Node", x: parent.x, y: parent.y, colorHex: parent.colorHex, shape: parent.shape, scale: newScale));
@@ -85,13 +82,12 @@ class _MindMapEditorState extends State<MindMapEditor> {
   }
 
   // ===========================================================================
-  // 📐 THE DYNAMIC BOUNDING BOX MATRIX (100% COLLISION FREE)
+  // 📐 THE DYNAMIC BOUNDING BOX MATRIX
   // ===========================================================================
   
   double _getNodeH(MindNode node) => (node.shape == 'circle' ? 120.0 : 80.0) * node.scale;
   double _getNodeW(MindNode node) => (node.shape == 'circle' ? 120.0 : 200.0) * node.scale;
 
-  // Calculates Vertical Subtree Space
   double _getSubtreeHeight(String nodeId) {
     var node = currentMap.nodes.firstWhere((n) => n.id == nodeId);
     double nodeH = _getNodeH(node);
@@ -100,12 +96,11 @@ class _MindMapEditorState extends State<MindMapEditor> {
     
     double childrenH = 0;
     for (var cid in node.childrenIds) childrenH += _getSubtreeHeight(cid);
-    childrenH += (node.childrenIds.length - 1) * 20.0; // 20px gap
+    childrenH += (node.childrenIds.length - 1) * 20.0; 
     
     return childrenH > nodeH ? childrenH : nodeH;
   }
 
-  // Calculates Horizontal Subtree Space (For Org Chart)
   double _getSubtreeWidth(String nodeId) {
     var node = currentMap.nodes.firstWhere((n) => n.id == nodeId);
     double nodeW = _getNodeW(node);
@@ -119,7 +114,6 @@ class _MindMapEditorState extends State<MindMapEditor> {
     return childrenW > nodeW ? childrenW : nodeW;
   }
 
-  // Calculates Horizontal Reach (For Timeline Spacing)
   double _getHorizontalSubtreeWidth(String nodeId) {
     var node = currentMap.nodes.firstWhere((n) => n.id == nodeId);
     double nodeW = _getNodeW(node);
@@ -132,7 +126,7 @@ class _MindMapEditorState extends State<MindMapEditor> {
       if (childSubW > maxChildW) maxChildW = childSubW;
     }
     
-    return nodeW + 100.0 + maxChildW; // 100.0 is the horizontal gap from _layoutHorizontal
+    return nodeW + 100.0 + maxChildW; 
   }
 
   void _autoLayoutTree({bool bypassReadOnly = false, bool centerCamera = false}) {
@@ -271,10 +265,8 @@ class _MindMapEditorState extends State<MindMapEditor> {
       var child = currentMap.nodes.firstWhere((n) => n.id == childId);
       double childH = _getNodeH(child);
 
-      // Calculates exactly how much vertical space this entire branch needs
       double childSubtreeH = _getSubtreeHeight(childId);
       
-      // Pushes the branch far enough away to guarantee it never touches the spine
       double yOffset = isTop ? -(childSubtreeH / 2) - 40.0 : (childSubtreeH / 2) + 40.0;
 
       child.x = currentX;
@@ -284,7 +276,6 @@ class _MindMapEditorState extends State<MindMapEditor> {
         _layoutHorizontal(child.id, child.x, child.y + (childH / 2), 1, true); 
       }
       
-      // Ensures the next node is placed perfectly past the longest horizontal child
       double subtreeHorizontalWidth = _getHorizontalSubtreeWidth(childId);
       currentX += subtreeHorizontalWidth + 50.0; 
       
@@ -328,7 +319,8 @@ class _MindMapEditorState extends State<MindMapEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = context.watch<SystemController>().systemData.isDarkMode;
+    final system = context.watch<SystemController>();
+    final isDark = system.systemData.isDarkMode;
     final Color bg = isDark ? const Color(0xFF171717) : const Color(0xFFF4F7F6);
     final Color text = isDark ? Colors.white : Colors.black;
     final Color accent = isDark ? const Color(0xFFEBFB7E) : const Color(0xFF0EA5E9);
@@ -404,7 +396,14 @@ class _MindMapEditorState extends State<MindMapEditor> {
                     ),
                     ...visibleNodesList.map((node) {
                       bool isSelected = selectedNodeId == node.id;
-                      bool hasChildren = node.childrenIds.isNotEmpty;
+                      
+                      // FIX: Detects if the node has children OR if it's an auto-map node with pruned children
+                      bool isAutoMap = currentMap.id == 'auto_domain_map';
+                      bool isExpandedInAuto = system.expandedDomainNodes.contains(node.id);
+                      bool hasHiddenChildren = isAutoMap && node.text.endsWith('[+]');
+                      bool hasChildren = node.childrenIds.isNotEmpty || hasHiddenChildren;
+                      bool isRoot = node.id == 'root_system_matrix';
+
                       Color nodeColor = Color(int.parse(node.colorHex));
                       bool isLightColor = nodeColor.computeLuminance() > 0.5;
                       Color textColor = isLightColor ? Colors.black : Colors.white;
@@ -424,7 +423,20 @@ class _MindMapEditorState extends State<MindMapEditor> {
                           children: [
                             GestureDetector(
                               onTap: () => setState(() => selectedNodeId = node.id),
-                              onDoubleTap: () => _editNodeText(node),
+                              
+                              // FIX: Restored double-tap behavior cleanly
+                              onDoubleTap: () {
+                                if (isAutoMap && !isRoot) {
+                                  system.toggleDomainNode(node.id); 
+                                  setState(() {
+                                    currentMap = system.generateDomainMindMap();
+                                    _autoLayoutTree(bypassReadOnly: true);
+                                  });
+                                } else if (!widget.isReadOnly) {
+                                  _editNodeText(node);
+                                }
+                              },
+                              
                               onPanUpdate: widget.isReadOnly ? null : (details) {
                                 setState(() { node.x += details.delta.dx; node.y += details.delta.dy; selectedNodeId = node.id; });
                               },
@@ -447,14 +459,39 @@ class _MindMapEditorState extends State<MindMapEditor> {
                                 ),
                               ),
                             ),
-                            if (hasChildren)
+                            
+                            // FIX: Visual Expand/Collapse Button now works on Auto-Maps too!
+                            if (hasChildren && !isRoot)
                               Positioned(
                                 right: currentMap.layoutStyle == 'org' ? null : -10,
                                 left: currentMap.layoutStyle == 'org' ? (actualWidth / 2) - 12 : null,
                                 bottom: -10,
                                 child: InkWell(
-                                  onTap: () => setState(() { if (collapsedNodes.contains(node.id)) collapsedNodes.remove(node.id); else collapsedNodes.add(node.id); _autoLayoutTree(); }),
-                                  child: Container(width: 24, height: 24, decoration: BoxDecoration(shape: BoxShape.circle, color: accent, border: Border.all(color: Colors.black87, width: 2)), child: Icon(collapsedNodes.contains(node.id) ? Icons.unfold_more : Icons.unfold_less, size: 14, color: Colors.black)),
+                                  onTap: () {
+                                    if (isAutoMap) {
+                                      system.toggleDomainNode(node.id);
+                                      setState(() {
+                                        currentMap = system.generateDomainMindMap();
+                                        _autoLayoutTree(bypassReadOnly: true);
+                                      });
+                                    } else {
+                                      setState(() { 
+                                        if (collapsedNodes.contains(node.id)) collapsedNodes.remove(node.id); 
+                                        else collapsedNodes.add(node.id); 
+                                        _autoLayoutTree(); 
+                                      });
+                                    }
+                                  },
+                                  child: Container(
+                                    width: 24, height: 24, 
+                                    decoration: BoxDecoration(shape: BoxShape.circle, color: accent, border: Border.all(color: Colors.black87, width: 2)), 
+                                    child: Icon(
+                                      isAutoMap 
+                                        ? (isExpandedInAuto ? Icons.unfold_less : Icons.unfold_more)
+                                        : (collapsedNodes.contains(node.id) ? Icons.unfold_more : Icons.unfold_less), 
+                                      size: 14, color: Colors.black
+                                    )
+                                  ),
                                 ),
                               )
                           ],

@@ -54,9 +54,10 @@ class SyncEngine {
           if (dg != null) {
             String message = utf8.decode(dg.data);
             if (message == "HUNTER_RADAR_PING") {
-              // If we hear a ping, shout back our Identity and IP!
-              String safeName = data.profileName.isEmpty ? "Unknown Hunter" : data.profileName;
-              String reply = "VAULT_IDENTITY:$safeName";
+              // =========================================================
+              // THE FIX: Shout back our exact custom Identity + Hex Tag!
+              // =========================================================
+              String reply = "VAULT_IDENTITY:${data.deviceName} #${data.deviceShortId}";
               _udpSocket!.send(utf8.encode(reply), dg.address, dg.port);
             }
           }

@@ -12,14 +12,12 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# IntelliJ / IDE related
 *.iml
 *.ipr
 *.iws
 .idea/
-
-# VS Code (Commented out so your launch configs sync)
-#.vscode/
+# .vscode/ (Commented out to keep settings.json synced)
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -31,33 +29,33 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# Symbolication related
+# Symbolication & Obfuscation
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio artifacts
+# Android artifacts & local settings
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-# ==========================================
-# THE VAULT SHIELD (Added for Open Source)
-# ==========================================
-
-# Local keys and hardware-specific configs (CRITICAL)
 android/local.properties
 android/.gradle/
-windows/runner/Runner.Generated.user
-linux/flutter/ephemeral/
+android/.kotlin/
 
+# Windows/Linux ephemeral build files
+windows/flutter/ephemeral/
+linux/flutter/ephemeral/
+windows/runner/Runner.Generated.user
+
+# ==========================================
+# PROGRESSO HQ PACKAGING & BINARIES
+# ==========================================
 # Staging Folders
 /debian/
 /progresso_*_amd64/
+/progresso_package_*/
 /arch_packaging/
 
-# Compiled Binaries (These belong in Releases, not the codebase)
+# Compiled Binaries & Archives
 *.deb
 *.apk
 *.tar.gz

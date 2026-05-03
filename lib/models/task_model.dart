@@ -11,7 +11,6 @@ class DailyTask {
     this.status = 'pending',
   });
 
-  // Convert to JSON for saving
   Map<String, dynamic> toJson() => {
         'id': id,
         'text': text,
@@ -19,7 +18,6 @@ class DailyTask {
         'status': status,
       };
 
-  // Create from JSON when loading
   factory DailyTask.fromJson(Map<String, dynamic> json) {
     return DailyTask(
       id: json['id'] ?? '',
@@ -28,4 +26,37 @@ class DailyTask {
       status: json['status'] ?? 'pending',
     );
   }
+}
+
+// NEW: The Blueprint for infinite/recurring tasks
+class RecurringTask {
+  String id;
+  String text;
+  String alertTime; // Format "HH:mm"
+  int? durationDays; // Null means 'Forever'
+  String startDate; // Format: YYYY-MM-DD
+  
+  RecurringTask({
+    required this.id,
+    required this.text,
+    required this.alertTime,
+    this.durationDays,
+    required this.startDate,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'text': text,
+    'alertTime': alertTime,
+    'durationDays': durationDays,
+    'startDate': startDate,
+  };
+
+  factory RecurringTask.fromJson(Map<String, dynamic> json) => RecurringTask(
+    id: json['id'],
+    text: json['text'],
+    alertTime: json['alertTime'],
+    durationDays: json['durationDays'],
+    startDate: json['startDate'],
+  );
 }

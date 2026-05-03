@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/system_controller.dart';
 import '../models/system_data.dart'; 
+import '../models/task_model.dart'; 
+import '../widgets/task_timer_overlay.dart'; // NEW IMPORT
 
 class TasksTab extends StatefulWidget {
   const TasksTab({super.key});
@@ -51,7 +53,91 @@ class _TasksTabState extends State<TasksTab> {
     }
   }
 
-  void _showPostponeDialog(SystemController system, String taskId, bool isDark, Color card, Color text, Color accent) {
+  // =========================================================================
+  // NEW EDIT DIALOGS
+  // =========================================================================
+
+  void _showEditTaskDialog(SystemController system, DailyTask task, Color card, Color text, Color accent) {
+    TextEditingController editCtrl = TextEditingController(text: task.text);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: card,
+        title: Text("Edit Quest", style: TextStyle(color: text, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: editCtrl, style: TextStyle(color: text), autofocus: true, 
+          decoration: InputDecoration(hintText: "Quest objective...", hintStyle: TextStyle(color: Colors.grey[600]))
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () { system.editDailyTask(task.id, editCtrl.text, task.date); Navigator.pop(ctx); },
+            style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.black),
+            child: const Text("SAVE")
+          ),
+        ],
+      )
+    );
+  }
+
+  void _showEditMilestoneDialog(SystemController system, BossRaid raid, bool isDark, Color card, Color inputBg, Color text, Color subText, Color accent) {
+    TextEditingController titleCtrl = TextEditingController(text: raid.title);
+    DateTime raidEnd = DateTime.parse(raid.deadlineDate);
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: card,
+          title: Text("EDIT MILESTONE", style: TextStyle(color: accent, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl, 
+                style: TextStyle(color: text), 
+                decoration: InputDecoration(hintText: "Milestone Objective...", hintStyle: TextStyle(color: subText), filled: true, fillColor: inputBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(5), borderSide: BorderSide.none))
+              ),
+              const SizedBox(height: 20),
+              Text("Target Deadline:", style: TextStyle(color: subText)),
+              TextButton(
+                onPressed: () async {
+                  DateTime? p = await showDatePicker(
+                    context: context, initialDate: raidEnd, firstDate: DateTime.now(), lastDate: DateTime(2100),
+                    builder: (context, child) {
+                      return Theme(
+                        data: isDark 
+                          ? ThemeData.dark().copyWith(colorScheme: ColorScheme.dark(primary: accent, onPrimary: Colors.black, surface: card, onSurface: text))
+                          : ThemeData.light().copyWith(colorScheme: ColorScheme.light(primary: accent, onPrimary: Colors.white, surface: card, onSurface: text)),
+                        child: child!,
+                      );
+                    }
+                  );
+                  if (p != null) setDialogState(() => raidEnd = p);
+                },
+                child: Text(raidEnd.toIso8601String().split('T')[0], style: TextStyle(color: accent, fontSize: 18, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text("CANCEL", style: TextStyle(color: subText))),
+            ElevatedButton(
+              onPressed: () { 
+                system.editBossRaid(raid.id, titleCtrl.text, raidEnd.toIso8601String().split('T')[0]); 
+                Navigator.pop(context); 
+              }, 
+              style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.black, elevation: 0), 
+              child: const Text("UPDATE", style: TextStyle(fontWeight: FontWeight.bold))
+            ),
+          ],
+        ),
+      )
+    );
+  }
+
+  // =========================================================================
+
+  void _showPostponeDialog(SystemController system, DailyTask task, bool isDark, Color card, Color text, Color accent) {
     showDialog(
       context: context,
       builder: (context) {
@@ -64,7 +150,7 @@ class _TasksTabState extends State<TasksTab> {
             TextButton(
               onPressed: () {
                 String tmrw = DateTime.now().add(const Duration(days: 1)).toIso8601String().split('T')[0];
-                system.postponeTask(taskId, tmrw);
+                system.postponeTask(task, tmrw);
                 Navigator.pop(context);
               },
               child: Text("TOMORROW", style: TextStyle(color: accent, fontWeight: FontWeight.bold)),
@@ -73,7 +159,7 @@ class _TasksTabState extends State<TasksTab> {
               onPressed: () async {
                 Navigator.pop(context); 
                 _pickDate(isDark, accent, card, text).then((_) {
-                  system.postponeTask(taskId, dateString);
+                  system.postponeTask(task, dateString);
                 });
               },
               child: const Text("PICK DATE...", style: TextStyle(color: Colors.blue)),
@@ -84,7 +170,38 @@ class _TasksTabState extends State<TasksTab> {
     );
   }
 
-  // REFACTORED: Professional Milestone Dialog
+  void _showDeleteRecurringDialog(SystemController system, DailyTask task, bool isDark, Color card, Color text, Color accent) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: card,
+        title: Text("Delete Recurring Quest", style: TextStyle(color: text, fontWeight: FontWeight.bold)),
+        content: Text("Do you want to delete this quest only for ${task.date}, or destroy the recurring series entirely?", style: const TextStyle(color: Colors.grey)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              system.deleteTask(task.id, task.date, task.text); 
+              Navigator.pop(context);
+            },
+            child: Text("THIS ONE ONLY", style: TextStyle(color: accent)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              system.deleteRecurringBlueprint(task.id); 
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5555), foregroundColor: Colors.white),
+            child: const Text("DESTROY SERIES", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ]
+      )
+    );
+  }
+
   void _showAddMilestoneDialog(SystemController system, bool isDark, Color card, Color inputBg, Color text, Color subText, Color accent) {
     TextEditingController titleCtrl = TextEditingController();
     DateTime raidEnd = DateTime.now().add(const Duration(days: 7));
@@ -140,6 +257,97 @@ class _TasksTabState extends State<TasksTab> {
     );
   }
 
+  void _showAddRecurringDialog(SystemController system, bool isDark, Color card, Color inputBg, Color text, Color subText, Color accent) {
+    TextEditingController titleCtrl = TextEditingController();
+    TimeOfDay selectedTime = TimeOfDay.now();
+    int? durationDays; 
+    String dropdownValue = 'Forever';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: card,
+          title: Text("ADD RECURRING QUEST", style: TextStyle(color: accent, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleCtrl, 
+                style: TextStyle(color: text), 
+                decoration: InputDecoration(hintText: "E.g., Read 10 Pages", hintStyle: TextStyle(color: subText), filled: true, fillColor: inputBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(5), borderSide: BorderSide.none))
+              ),
+              const SizedBox(height: 20),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Duration:", style: TextStyle(color: subText)),
+                  DropdownButton<String>(
+                    value: dropdownValue,
+                    dropdownColor: card,
+                    style: TextStyle(color: accent, fontWeight: FontWeight.bold),
+                    items: const [
+                      DropdownMenuItem(value: '7 Days', child: Text("7 Days")),
+                      DropdownMenuItem(value: '30 Days', child: Text("30 Days")),
+                      DropdownMenuItem(value: 'Forever', child: Text("Forever ♾️")),
+                    ],
+                    onChanged: (val) {
+                      setDialogState(() {
+                        dropdownValue = val!;
+                        if (val == '7 Days') durationDays = 7;
+                        else if (val == '30 Days') durationDays = 30;
+                        else durationDays = null;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Daily Alert Time:", style: TextStyle(color: subText)),
+                  TextButton(
+                    onPressed: () async {
+                      TimeOfDay? time = await showTimePicker(
+                        context: context, 
+                        initialTime: selectedTime,
+                        builder: (context, child) {
+                          return Theme(
+                            data: isDark 
+                              ? ThemeData.dark().copyWith(colorScheme: ColorScheme.dark(primary: accent, onPrimary: Colors.black, surface: card, onSurface: text))
+                              : ThemeData.light().copyWith(colorScheme: ColorScheme.light(primary: accent, onPrimary: Colors.white, surface: card, onSurface: text)),
+                            child: child!,
+                          );
+                        }
+                      );
+                      if (time != null) setDialogState(() => selectedTime = time);
+                    },
+                    child: Text(selectedTime.format(context), style: TextStyle(color: accent, fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text("CANCEL", style: TextStyle(color: subText))),
+            ElevatedButton(
+              onPressed: () { 
+                String timeStr = "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}";
+                system.addRecurringTask(titleCtrl.text, timeStr, durationDays); 
+                Navigator.pop(context); 
+              }, 
+              style: ElevatedButton.styleFrom(backgroundColor: accent, foregroundColor: Colors.black, elevation: 0), 
+              child: const Text("INITIALIZE", style: TextStyle(fontWeight: FontWeight.bold))
+            ),
+          ],
+        ),
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final system = context.watch<SystemController>();
@@ -156,9 +364,6 @@ class _TasksTabState extends State<TasksTab> {
     final Color postponeBg = isDark ? const Color(0xFF332A1F) : const Color(0xFFFFF7ED);
     final Color inputBg = isDark ? const Color(0xFF171717) : const Color(0xFFEDF2F7);
 
-    // =========================================================================
-    // EXTREME LOSS AVERSION: REFACTORED ACCOUNTABILITY LOCK
-    // =========================================================================
     if (system.systemData.isPenaltyActive) {
       return Container(
         width: double.infinity,
@@ -188,15 +393,12 @@ class _TasksTabState extends State<TasksTab> {
       );
     }
 
-    var activeTasks = system.systemData.dailyTasks.where((t) => t.date == dateString).toList();
+    var activeTasks = system.getTasksForDate(dateString);
     var activeRaids = system.systemData.bossRaids.where((r) => r.status == 'active').toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // =====================================================================
-        // STRATEGIC MILESTONES (Formerly Boss Raids)
-        // =====================================================================
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -221,7 +423,7 @@ class _TasksTabState extends State<TasksTab> {
                 int daysLeft = DateTime.parse(raid.deadlineDate).difference(DateTime.now()).inDays;
                 
                 return Container(
-                  width: 250, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.all(15),
+                  width: 320, margin: const EdgeInsets.only(right: 15), padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(10), border: Border.all(color: accent, width: 2)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,11 +432,15 @@ class _TasksTabState extends State<TasksTab> {
                       const Spacer(),
                       Text(daysLeft >= 0 ? "$daysLeft DAYS REMAINING" : "DEADLINE MISSED", style: TextStyle(color: daysLeft >= 0 ? accent : const Color(0xFFFF5555), fontWeight: FontWeight.bold, fontSize: 12)),
                       const SizedBox(height: 10),
+                      
+                      // NEW MILESTONE ACTION ROW
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(child: ElevatedButton(onPressed: () => system.resolveRaid(raid.id, 'won'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00BFA5), foregroundColor: Colors.white, elevation: 0, padding: EdgeInsets.zero), child: const Text("ACHIEVED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
-                          const SizedBox(width: 5),
-                          Expanded(child: ElevatedButton(onPressed: () => system.resolveRaid(raid.id, 'failed'), style: ElevatedButton.styleFrom(backgroundColor: border, foregroundColor: text, elevation: 0, padding: EdgeInsets.zero), child: const Text("ABANDON", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))),
+                          IconButton(icon: const Icon(Icons.center_focus_strong, color: Colors.greenAccent, size: 22), tooltip: "Focus", onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => TaskTimerOverlay(taskName: raid.title)))),
+                          IconButton(icon: const Icon(Icons.edit, color: Colors.blueAccent, size: 22), tooltip: "Edit", onPressed: () => _showEditMilestoneDialog(system, raid, isDark, card, inputBg, text, subText, accent)),
+                          IconButton(icon: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 22), tooltip: "Achieved", onPressed: () => system.resolveRaid(raid.id, 'won')),
+                          IconButton(icon: const Icon(Icons.cancel, color: Colors.redAccent, size: 22), tooltip: "Abandon", onPressed: () => system.resolveRaid(raid.id, 'failed')),
                         ],
                       )
                     ],
@@ -248,9 +454,6 @@ class _TasksTabState extends State<TasksTab> {
         Divider(color: border),
         const SizedBox(height: 15),
 
-        // =====================================================================
-        // STANDARD TASK BOARD
-        // =====================================================================
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -287,6 +490,11 @@ class _TasksTabState extends State<TasksTab> {
               onTap: () { system.addDailyTask(taskInputController.text, dateString); taskInputController.clear(); }, 
               child: Container(width: 55, height: 55, decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(5)), child: Center(child: Text("+", style: TextStyle(color: invertText, fontSize: 28, fontWeight: FontWeight.bold)))),
             ),
+            const SizedBox(width: 10),
+            InkWell(
+              onTap: () { _showAddRecurringDialog(system, isDark, card, inputBg, text, subText, accent); taskInputController.clear(); }, 
+              child: Container(width: 55, height: 55, decoration: BoxDecoration(color: inputBg, borderRadius: BorderRadius.circular(5), border: Border.all(color: accent, width: 2)), child: const Center(child: Text("♾️", style: TextStyle(fontSize: 24)))),
+            ),
           ],
         ),
         const SizedBox(height: 20),
@@ -300,6 +508,7 @@ class _TasksTabState extends State<TasksTab> {
                     var task = activeTasks[index];
                     bool isCompleted = task.status == 'completed';
                     bool isPostponed = task.status == 'postponed';
+                    bool isRecurring = task.id.startsWith('recur_');
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -312,19 +521,51 @@ class _TasksTabState extends State<TasksTab> {
                         children: [
                           Checkbox(
                             value: isCompleted, activeColor: accent, checkColor: invertText, 
-                            onChanged: isPostponed ? null : (val) { system.updateTaskStatus(task.id, val == true ? 'completed' : 'pending'); }
+                            onChanged: isPostponed ? null : (val) { system.updateTaskStatus(task.id, val == true ? 'completed' : 'pending', task.date, task.text); }
                           ),
                           Expanded(
-                            child: Text(
-                              task.text, 
-                              style: TextStyle(color: isCompleted || isPostponed ? subText : text, fontSize: 16, decoration: isCompleted || isPostponed ? TextDecoration.lineThrough : null)
+                            child: Row(
+                              children: [
+                                if (isRecurring) ...[
+                                  Tooltip(
+                                    message: "Recurring Quest",
+                                    child: Icon(Icons.repeat, size: 16, color: accent),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    task.text, 
+                                    style: TextStyle(color: isCompleted || isPostponed ? subText : text, fontSize: 16, decoration: isCompleted || isPostponed ? TextDecoration.lineThrough : null)
+                                  )
+                                ),
+                              ]
                             )
                           ),
                           
-                          if (!isCompleted && !isPostponed) 
-                            IconButton(icon: const Icon(Icons.schedule, size: 20), color: const Color(0xFFFF9800), tooltip: "Postpone", onPressed: () => _showPostponeDialog(system, task.id, isDark, card, text, accent)),
-                            
-                          IconButton(icon: const Icon(Icons.delete_outline, size: 20), color: const Color(0xFFFF5555), tooltip: "Erase", onPressed: () => system.deleteTask(task.id)),
+                          // NEW: EXPANDED ACTION ROW
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!isCompleted && !isPostponed) ...[
+                                IconButton(icon: const Icon(Icons.center_focus_strong, size: 20), color: Colors.greenAccent, tooltip: "Focus", onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => TaskTimerOverlay(taskName: task.text)))),
+                                IconButton(icon: const Icon(Icons.edit, size: 20), color: Colors.blueAccent, tooltip: "Edit", onPressed: () => _showEditTaskDialog(system, task, card, text, accent)),
+                                IconButton(icon: const Icon(Icons.schedule, size: 20), color: const Color(0xFFFF9800), tooltip: "Postpone", onPressed: () => _showPostponeDialog(system, task, isDark, card, text, accent)),
+                              ],
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 20), 
+                                color: const Color(0xFFFF5555), 
+                                tooltip: "Erase", 
+                                onPressed: () {
+                                  if (isRecurring) {
+                                    _showDeleteRecurringDialog(system, task, isDark, card, text, accent);
+                                  } else {
+                                    system.deleteTask(task.id, task.date, task.text);
+                                  }
+                                }
+                              ),
+                            ]
+                          )
                         ],
                       ),
                     );

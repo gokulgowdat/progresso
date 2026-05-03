@@ -40,7 +40,6 @@ class MindMapTab extends StatelessWidget {
     );
   }
 
-  // NEW: The Rename Map Dialog
   void _showRenameMapDialog(BuildContext context, SystemController system, MindMapData map, Color card, Color text, Color accent) {
     TextEditingController titleCtrl = TextEditingController(text: map.title);
 
@@ -83,10 +82,8 @@ class MindMapTab extends StatelessWidget {
     final Color text = isDark ? Colors.white : Colors.black;
     final Color accent = isDark ? const Color(0xFFEBFB7E) : const Color(0xFF0EA5E9);
 
-    // Grab the screen width to determine layout
     bool isMobile = MediaQuery.of(context).size.width < 800;
 
-    // Extract buttons into variables to keep the code clean
     Widget viewDomainsBtn = ElevatedButton.icon(
       onPressed: () { 
         MindMapData domainMap = system.generateDomainMindMap(); 
@@ -107,9 +104,6 @@ class MindMapTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ==========================================
-        // DYNAMIC RESPONSIVE HEADER
-        // ==========================================
         if (isMobile) ...[
           Text("MIND WEB PANEL", style: TextStyle(color: text, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
           const SizedBox(height: 15),
@@ -135,7 +129,6 @@ class MindMapTab extends StatelessWidget {
             ],
           ),
         ],
-        // ==========================================
         
         const SizedBox(height: 20),
         Expanded(
@@ -168,7 +161,6 @@ class MindMapTab extends StatelessWidget {
                             ),
                           ),
                           
-                          // Added Edit Button right next to Delete Button
                           Positioned(
                             top: 0, right: 0, 
                             child: Row(

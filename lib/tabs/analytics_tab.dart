@@ -260,7 +260,7 @@ class _AnalyticsTabState extends State<AnalyticsTab> {
   }
 }
 
-// --- CUSTOM PAINTER FOR MULTIPLE OVERLAPPING LINES ---
+// --- CUSTOM PAINTER FOR MULTIPLE OVERLAPPING CURVY LINES ---
 class MultiLineChartPainter extends CustomPainter {
   final List<List<double>> seriesList;
   final List<Color> colors;
@@ -286,6 +286,9 @@ class MultiLineChartPainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round;
 
       final path = Path();
+      double prevX = 0.0;
+      double prevY = 0.0;
+
       for (int i = 0; i < values.length; i++) {
         double x = i * stepX;
         // Calculate y coordinate (0 is at the top of the canvas, so we invert it)
@@ -294,8 +297,16 @@ class MultiLineChartPainter extends CustomPainter {
         if (i == 0) {
           path.moveTo(x, y);
         } else {
-          path.lineTo(x, y);
+          // THE FIX: Calculate horizontal anchor points halfway between the current and previous nodes
+          double cpX = prevX + (x - prevX) / 2;
+          
+          // Draw a smooth Bezier Curve instead of a sharp straight line
+          path.cubicTo(cpX, prevY, cpX, y, x, y);
         }
+        
+        // Save current points for the next iteration
+        prevX = x;
+        prevY = y;
       }
       canvas.drawPath(path, paint);
     }

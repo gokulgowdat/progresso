@@ -35,6 +35,26 @@ class SystemController extends ChangeNotifier {
   String currentQuote = "";
   String syncStatusMessage = "";
 
+  Set<String> expandedDomainNodes = {};
+
+  // =========================================================================
+  // BULLETPROOF AUDIO ENGINE INITIALIZATION
+  // =========================================================================
+  SystemController() {
+    audioPlayer.onPlayerComplete.listen((_) {
+      if (isAudioPlaying) {
+        audioPlayer.seek(Duration.zero);
+        audioPlayer.resume();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
+  }
+
   final List<String> quoteLibrary = [
     "\"I'll leave tomorrow's problems to tomorrow's me.\" - Saitama",
     "\"Human strength lies in the ability to change yourself.\" - Saitama",
@@ -162,10 +182,14 @@ class SystemController extends ChangeNotifier {
     
     await NotificationEngine.init();
 
+    if (systemData.noteGroups.isEmpty) {
+      systemData.noteGroups = [NoteGroup(id: 'group_general', name: 'General')];
+    }
+
     if(quoteLibrary.isNotEmpty) currentQuote = quoteLibrary[Random().nextInt(quoteLibrary.length)];
     if (hasAccount() && systemData.stayLoggedIn) isLoggedIn = true;
     
-    _autoPostponeAndCheckPenalty();
+    _autoPostponeAndCheckPenalty(); 
     _evaluateRaids();               
     await syncEngine.startHosting(systemData);
     recalculateSystem();
@@ -173,13 +197,119 @@ class SystemController extends ChangeNotifier {
     notifyListeners();
 
     _fireDailyBriefing();
+
+    // =========================================================================
+    // NATIVE OS ALARM REGISTRATION (Restores alarms if phone reboots)
+    // =========================================================================
+    for (var blueprint in systemData.recurringTasks) {
+      if (blueprint.alertTime.contains(':')) {
+        int h = int.parse(blueprint.alertTime.split(':')[0]);
+        int m = int.parse(blueprint.alertTime.split(':')[1]);
+        
+        NotificationEngine.scheduleDailyRecurringQuest(
+          id: blueprint.id.hashCode,
+          title: "⏰ QUEST ALERT",
+          body: "Time to execute: ${blueprint.text}",
+          hour: h,
+          minute: m,
+        );
+      }
+    }
   }
 
-  // --- AUDIO ENGINE CONTROLS ---
+  // =========================================================================
+  // DEVICE IDENTITY ENGINE
+  // =========================================================================
+  
+  void updateDeviceName(String newName) {
+    if (newName.trim().isNotEmpty) {
+      systemData.deviceName = newName.trim();
+      
+      // If this device doesn't have a unique hardware tag yet, generate one.
+      if (systemData.deviceShortId.isEmpty) {
+        systemData.deviceShortId = _generateShortTag();
+      }
+      
+      syncStatusMessage = "IDENTITY UPDATED: Broadcasting as ${systemData.deviceName} #${systemData.deviceShortId}";
+      _storage.saveState(systemData);
+      notifyListeners();
+    }
+  }
+
+  String _generateShortTag() {
+    const chars = '0123456789ABCDEF';
+    Random rnd = Random();
+    return String.fromCharCodes(Iterable.generate(4, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))));
+  }
+
+  String get fullDeviceIdentity {
+    if (systemData.deviceShortId.isEmpty) {
+      systemData.deviceShortId = _generateShortTag();
+      _storage.saveState(systemData);
+    }
+    return "${systemData.deviceName} #${systemData.deviceShortId}";
+  }
+
+  // =========================================================================
+  // MINT STICKY NOTES ENGINE
+  // =========================================================================
+
+  void addNoteGroup(String name) {
+    if (name.trim().isEmpty) return;
+    systemData.noteGroups.add(NoteGroup(
+      id: DateTime.now().millisecondsSinceEpoch.toString(), 
+      name: name
+    ));
+    recalculateSystem();
+  }
+
+  void deleteNoteGroup(String groupId) {
+    if (systemData.noteGroups.length <= 1) return; 
+    systemData.noteGroups.removeWhere((g) => g.id == groupId);
+    systemData.stickyNotes.removeWhere((n) => n.groupId == groupId); 
+    recalculateSystem();
+  }
+
+  void addStickyNote(String groupId, {double x = 50, double y = 50}) {
+    systemData.stickyNotes.add(StickyNote(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      groupId: groupId,
+      x: x,
+      y: y,
+    ));
+    recalculateSystem();
+  }
+
+  void updateStickyNoteSilent(String id, {String? title, String? text, String? colorHex, double? width, double? height, double? x, double? y}) {
+    var index = systemData.stickyNotes.indexWhere((n) => n.id == id);
+    if (index != -1) {
+      if (title != null) systemData.stickyNotes[index].title = title;
+      if (text != null) systemData.stickyNotes[index].text = text;
+      if (colorHex != null) systemData.stickyNotes[index].colorHex = colorHex;
+      if (width != null) systemData.stickyNotes[index].width = width;
+      if (height != null) systemData.stickyNotes[index].height = height;
+      if (x != null) systemData.stickyNotes[index].x = x;
+      if (y != null) systemData.stickyNotes[index].y = y;
+    }
+  }
+
+  void saveNotesToVault() {
+    _storage.saveState(systemData);
+  }
+
+  void deleteStickyNote(String id) {
+    systemData.stickyNotes.removeWhere((n) => n.id == id);
+    recalculateSystem();
+  }
+
+  // =========================================================================
+  // AUDIO ENGINE LOGIC
+  // =========================================================================
+
   Future<void> playAudioStream(String url, String trackName) async {
     await audioPlayer.stop();
-    await audioPlayer.setReleaseMode(ReleaseMode.loop);
     await audioPlayer.play(UrlSource(url));
+    await audioPlayer.setReleaseMode(ReleaseMode.loop); 
     currentTrackName = trackName;
     isAudioPlaying = true;
     notifyListeners();
@@ -187,8 +317,8 @@ class SystemController extends ChangeNotifier {
 
   Future<void> playLocalAudio(String filePath, String trackName) async {
     await audioPlayer.stop();
-    await audioPlayer.setReleaseMode(ReleaseMode.loop);
     await audioPlayer.play(DeviceFileSource(filePath));
+    await audioPlayer.setReleaseMode(ReleaseMode.loop); 
     currentTrackName = trackName;
     isAudioPlaying = true;
     notifyListeners();
@@ -201,7 +331,6 @@ class SystemController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- NOTIFICATION LOGIC ---
   void _fireDailyBriefing() {
     String today = DateTime.now().toIso8601String().split('T')[0];
     int tasksToday = systemData.dailyTasks.where((t) => t.date == today && t.status == 'pending').length;
@@ -215,7 +344,37 @@ class SystemController extends ChangeNotifier {
     }
   }
 
+  void _injectRecurringTasksForToday() {
+    String today = DateTime.now().toIso8601String().split('T')[0];
+    DateTime todayDate = DateTime.parse(today);
+
+    if (systemData.recurringTasks.isEmpty) return;
+
+    for (var blueprint in systemData.recurringTasks) {
+      DateTime startDate = DateTime.parse(blueprint.startDate);
+      
+      if (blueprint.durationDays != null) {
+        if (todayDate.difference(startDate).inDays >= blueprint.durationDays!) {
+          continue; 
+        }
+      }
+
+      bool alreadyExistsToday = systemData.dailyTasks.any(
+        (task) => task.date == today && task.id == "recur_${blueprint.id}_$today"
+      );
+
+      if (!alreadyExistsToday) {
+        String newTaskId = "recur_${blueprint.id}_$today";
+        var newTask = DailyTask(id: newTaskId, text: blueprint.text, date: today, status: 'pending');
+        
+        systemData.dailyTasks = List.from(systemData.dailyTasks)..add(newTask);
+      }
+    }
+  }
+
   void _autoPostponeAndCheckPenalty() {
+    _injectRecurringTasksForToday();
+
     String today = DateTime.now().toIso8601String().split('T')[0];
     bool failedTaskDetected = false;
 
@@ -249,7 +408,6 @@ class SystemController extends ChangeNotifier {
     recalculateSystem();
   }
 
-  // --- RPG STATUS WINDOW MATH ---
   double get statSTR => systemData.exerciseHoursDict.values.fold(0.0, (a, b) => a + b);
   double get statINT => systemData.hoursWorkedDict.values.fold(0.0, (a, b) => a + b);
   double get statAGI => systemData.dailyTasks.where((t) => t.status == 'completed').length.toDouble();
@@ -260,6 +418,45 @@ class SystemController extends ChangeNotifier {
       systemData.bossRaids.add(BossRaid(id: DateTime.now().millisecondsSinceEpoch.toString(), title: title, deadlineDate: deadline));
       recalculateSystem();
     }
+  }
+
+  // =========================================================================
+  // TASK EDITING & GLOBAL FOCUS ENGINE
+  // =========================================================================
+
+  void editDailyTask(String id, String newText, String date) {
+    if (newText.trim().isEmpty) return;
+    
+    var index = systemData.dailyTasks.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      systemData.dailyTasks[index].text = newText;
+    } else if (id.startsWith('recur_')) {
+      systemData.dailyTasks.add(DailyTask(id: id, text: newText, date: date, status: 'pending'));
+    }
+    recalculateSystem();
+  }
+
+  void editBossRaid(String id, String newTitle, String newDeadline) {
+    if (newTitle.trim().isEmpty) return;
+    
+    var index = systemData.bossRaids.indexWhere((r) => r.id == id);
+    if (index != -1) {
+      systemData.bossRaids[index].title = newTitle;
+      systemData.bossRaids[index].deadlineDate = newDeadline;
+      recalculateSystem();
+    }
+  }
+
+  void logGlobalTime(double hoursWorked) {
+    if (hoursWorked <= 0) return;
+    
+    String today = DateTime.now().toIso8601String().split('T')[0];
+    systemData.hoursWorkedDict[today] = (systemData.hoursWorkedDict[today] ?? 0.0) + hoursWorked;
+    
+    if (!systemData.badgesUnlocked.contains("sys_focus")) {
+      systemData.badgesUnlocked.add("sys_focus");
+    }
+    recalculateSystem(); 
   }
 
   void resolveRaid(String id, String status) {
@@ -326,7 +523,6 @@ class SystemController extends ChangeNotifier {
     }
   }
 
-// FIX: The Bulletproof Profile Picture Persistence
   Future<void> updateProfile(String name, String desc, String photoUrl) async {
     systemData.profileName = name;
     systemData.profileDesc = desc;
@@ -334,19 +530,15 @@ class SystemController extends ChangeNotifier {
     if (photoUrl.isNotEmpty && photoUrl != systemData.profilePhotoUrl && !photoUrl.contains('permanent_avatar')) {
       try {
         final directory = await getApplicationDocumentsDirectory();
-        
-        // NEW SHIELD: Force the OS to create the directory if it doesn't exist yet!
         if (!await directory.exists()) {
           await directory.create(recursive: true);
         }
-        
         final newPath = '${directory.path}/permanent_avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final newFile = await File(photoUrl).copy(newPath);
         systemData.profilePhotoUrl = newFile.path;
-        
       } catch (e) {
         print("Failed to save permanent image: $e");
-        systemData.profilePhotoUrl = photoUrl; // Fallback to temp path if it fails
+        systemData.profilePhotoUrl = photoUrl;
       }
     } else if (photoUrl.isEmpty) {
       systemData.profilePhotoUrl = "";
@@ -364,6 +556,10 @@ class SystemController extends ChangeNotifier {
     systemData.isCardView = !systemData.isCardView;
     recalculateSystem();
   }
+
+  // =========================================================================
+  // EXPORT / IMPORT ENGINE 
+  // =========================================================================
 
   Future<void> exportData(String path) async {
     try {
@@ -387,7 +583,15 @@ class SystemController extends ChangeNotifier {
         return;
       }
       final jsonString = await file.readAsString();
-      systemData = SystemData.fromJson(jsonDecode(jsonString));
+      final decoded = jsonDecode(jsonString);
+
+      if (decoded is Map<String, dynamic> && decoded.containsKey('type') && decoded['type'] == 'partial_domain_backup') {
+        syncStatusMessage = "IMPORT ERROR: This is a Domain Module backup. Use the Domain Import button below.";
+        notifyListeners();
+        return;
+      }
+
+      systemData = SystemData.fromJson(decoded);
       _storage.saveState(systemData);
       syncStatusMessage = "IMPORT SUCCESS: Vault restored.";
       recalculateSystem();
@@ -396,6 +600,58 @@ class SystemController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> exportSpecificDomains(List<String> domainIds, String path) async {
+    try {
+      final file = File(path);
+      var exportList = systemData.skills.where((d) => domainIds.contains(d.id)).toList();
+      
+      Map<String, dynamic> payload = {
+        'type': 'partial_domain_backup',
+        'domains': exportList.map((d) => d.toJson()).toList(),
+      };
+
+      await file.writeAsString(jsonEncode(payload));
+      syncStatusMessage = "EXPORT SUCCESS: Domain Modules saved.";
+      notifyListeners();
+    } catch (e) {
+      syncStatusMessage = "EXPORT ERROR: $e";
+      notifyListeners();
+    }
+  }
+
+  Future<void> importSpecificDomains(String path) async {
+    try {
+      final file = File(path);
+      if (!await file.exists()) {
+        syncStatusMessage = "IMPORT ERROR: File not found.";
+        notifyListeners();
+        return;
+      }
+      final jsonString = await file.readAsString();
+      final decoded = jsonDecode(jsonString);
+
+      if (decoded is Map<String, dynamic> && decoded['type'] == 'partial_domain_backup') {
+        List<dynamic> domainsList = decoded['domains'];
+        int count = 0;
+        for (var d in domainsList) {
+          systemData.skills.add(SkillNode.fromJson(d));
+          count++;
+        }
+        _storage.saveState(systemData);
+        syncStatusMessage = "IMPORT SUCCESS: $count Domain(s) integrated.";
+        recalculateSystem();
+      } else {
+        syncStatusMessage = "IMPORT ERROR: Invalid Domain Module file. Is this a full backup?";
+        notifyListeners();
+      }
+    } catch (e) {
+      syncStatusMessage = "IMPORT ERROR: Failed to parse .PRG file.";
+      notifyListeners();
+    }
+  }
+
+  // =========================================================================
 
   int get currentStreak {
     int streak = 0;
@@ -547,6 +803,15 @@ class SystemController extends ChangeNotifier {
     recalculateSystem();
   }
 
+  void toggleDomainNode(String nodeId) {
+    if (expandedDomainNodes.contains(nodeId)) {
+      expandedDomainNodes.remove(nodeId); 
+    } else {
+      expandedDomainNodes.add(nodeId);    
+    }
+    notifyListeners(); 
+  }
+
   List<SkillNode> getCompletedSkillsForDate(String dateStr) {
     List<SkillNode> completedSkills = [];
     void traverse(List<SkillNode> nodes) {
@@ -561,6 +826,34 @@ class SystemController extends ChangeNotifier {
     return completedSkills;
   }
 
+  List<DailyTask> getTasksForDate(String targetDate) {
+    DateTime target = DateTime.parse(targetDate);
+    
+    List<DailyTask> tasks = systemData.dailyTasks.where(
+      (t) => t.date == targetDate && t.status != 'erased'
+    ).toList();
+
+    for (var blueprint in systemData.recurringTasks) {
+      DateTime start = DateTime.parse(blueprint.startDate);
+
+      if (target.compareTo(start) >= 0) { 
+        if (blueprint.durationDays != null) {
+          if (target.difference(start).inDays >= blueprint.durationDays!) {
+            continue; 
+          }
+        }
+
+        String expectedId = "recur_${blueprint.id}_$targetDate";
+        bool alreadyMaterialized = systemData.dailyTasks.any((t) => t.id == expectedId);
+
+        if (!alreadyMaterialized) {
+          tasks.add(DailyTask(id: expectedId, text: blueprint.text, date: targetDate, status: 'pending'));
+        }
+      }
+    }
+    return tasks;
+  }
+
   void addDailyTask(String text, String targetDate) {
     if (text.trim().isNotEmpty) {
       var newTask = DailyTask(id: DateTime.now().millisecondsSinceEpoch.toString(), text: text, date: targetDate, status: 'pending');
@@ -568,27 +861,94 @@ class SystemController extends ChangeNotifier {
       
       String today = DateTime.now().toIso8601String().split('T')[0];
       if (targetDate != today) {
-        NotificationEngine.scheduleTaskReminder(newTask);
+        // NotificationEngine.scheduleTaskReminder(newTask); // Deprecated in favor of exact alarms
       }
       
       recalculateSystem();
     }
   }
 
-  void updateTaskStatus(String id, String newStatus) {
-    systemData.dailyTasks.firstWhere((t) => t.id == id).status = newStatus;
+  void addRecurringTask(String text, String alertTime, int? durationDays) {
+    if (text.trim().isEmpty) return;
+    String today = DateTime.now().toIso8601String().split('T')[0];
+    
+    String newId = DateTime.now().millisecondsSinceEpoch.toString();
+    systemData.recurringTasks.add(RecurringTask(
+      id: newId,
+      text: text,
+      alertTime: alertTime,
+      durationDays: durationDays,
+      startDate: today,
+    ));
+    _injectRecurringTasksForToday();
+    recalculateSystem();
+    
+    if (alertTime.contains(':')) {
+      int h = int.parse(alertTime.split(':')[0]);
+      int m = int.parse(alertTime.split(':')[1]);
+      NotificationEngine.scheduleDailyRecurringQuest(
+        id: newId.hashCode,
+        title: "⏰ QUEST ALERT",
+        body: "Time to execute: $text",
+        hour: h,
+        minute: m,
+      );
+    }
+  }
+
+  void updateTaskStatus(String id, String newStatus, String date, String text) {
+    var index = systemData.dailyTasks.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      systemData.dailyTasks[index].status = newStatus;
+    } else {
+      systemData.dailyTasks.add(DailyTask(id: id, text: text, date: date, status: newStatus));
+    }
     recalculateSystem();
   }
 
-  void deleteTask(String id) {
-    systemData.dailyTasks.removeWhere((t) => t.id == id);
+  void deleteTask(String id, String date, String text) {
+    var index = systemData.dailyTasks.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      if (id.startsWith('recur_')) {
+        systemData.dailyTasks[index].status = 'erased';
+      } else {
+        systemData.dailyTasks.removeAt(index);
+      }
+    } else {
+      if (id.startsWith('recur_')) {
+        systemData.dailyTasks.add(DailyTask(id: id, text: text, date: date, status: 'erased'));
+      }
+    }
     recalculateSystem();
   }
 
-  void postponeTask(String id, String targetDate) {
-    var task = systemData.dailyTasks.firstWhere((t) => t.id == id);
-    task.status = 'postponed'; 
-    systemData.dailyTasks.add(DailyTask(id: DateTime.now().millisecondsSinceEpoch.toString(), text: task.text, date: targetDate, status: 'pending'));
+  void deleteRecurringBlueprint(String fullTaskId) {
+    List<String> parts = fullTaskId.split('_');
+    if (parts.length >= 2) {
+      String blueprintId = parts[1];
+      systemData.recurringTasks.removeWhere((r) => r.id == blueprintId);
+      systemData.dailyTasks.removeWhere((t) => t.id.startsWith('recur_${blueprintId}_') && t.status == 'pending');
+      recalculateSystem();
+      
+      NotificationEngine.cancelTaskAlarm(blueprintId.hashCode);
+    }
+  }
+
+  void postponeTask(DailyTask task, String targetDate) {
+    var index = systemData.dailyTasks.indexWhere((t) => t.id == task.id);
+    if (index != -1) {
+      systemData.dailyTasks[index].status = 'postponed'; 
+    } else {
+      systemData.dailyTasks.add(DailyTask(id: task.id, text: task.text, date: task.date, status: 'postponed'));
+    }
+    
+    systemData.dailyTasks.add(DailyTask(
+      id: DateTime.now().millisecondsSinceEpoch.toString(), 
+      text: task.text, 
+      date: targetDate, 
+      status: 'pending'
+    ));
+    
     recalculateSystem();
   }
 
@@ -617,11 +977,34 @@ class SystemController extends ChangeNotifier {
     recalculateSystem(); 
   }
 
-  // ===========================================================================
-  // 📡 SEAMLESS SYNC ENGINE
-  // ===========================================================================
-  
   bool isScanning = false;
+  
+  // =========================================================================
+  // BLUETOOTH SYNC ENGINE (Pending Native Implementation)
+  // =========================================================================
+  
+  bool isBluetoothScanning = false;
+  List<Map<String, String>> discoveredBluetoothDevices = []; 
+
+  Future<void> runBluetoothScan() async {
+    isBluetoothScanning = true;
+    syncStatusMessage = "Initializing Bluetooth hardware...";
+    notifyListeners();
+    
+    await Future.delayed(const Duration(seconds: 2));
+    
+    isBluetoothScanning = false;
+    // Clear out the old fake UI mockup data
+    discoveredBluetoothDevices = []; 
+    
+    syncStatusMessage = "BLUETOOTH OFFLINE: Native Bluetooth bridging feature is not yet implemented. Use WiFi Sync for now.";
+    notifyListeners();
+  }
+
+  Future<void> syncWithBluetoothDevice(String deviceId) async {
+    syncStatusMessage = "BLUETOOTH ERROR: Hardware bridge offline.";
+    notifyListeners();
+  }
 
   Future<void> runRadarScan() async {
     isScanning = true;
@@ -664,8 +1047,12 @@ class SystemController extends ChangeNotifier {
       }
 
       if (shouldOverwrite) {
-        // FIX 2: Shield the local Master Node status before overwriting
+        // =====================================================================
+        // THE FIX: SHIELD THE LOCAL DEVICE IDENTITY BEFORE OVERWRITING!
+        // =====================================================================
         bool wasLocalMaster = systemData.isMasterDevice;
+        String localDeviceName = systemData.deviceName;
+        String localDeviceShortId = systemData.deviceShortId;
 
         if (remoteData.profilePhotoBase64 != null && remoteData.profilePhotoBase64!.isNotEmpty) {
           try {
@@ -681,18 +1068,17 @@ class SystemController extends ChangeNotifier {
           remoteData.profilePhotoUrl = systemData.profilePhotoUrl; 
         }
 
+        // Apply the new data
         systemData = remoteData;
         
-        // FIX 2: Restore the original Master Node status
+        // Restore the unique local identity variables
         systemData.isMasterDevice = wasLocalMaster;
+        systemData.deviceName = localDeviceName;
+        systemData.deviceShortId = localDeviceShortId;
       }
     }
     recalculateSystem();
   }
-
-  // ===========================================================================
-  // 🧠 MIND WEB ENGINE LOGIC
-  // ===========================================================================
 
   void createMindMap(String title, String layout) {
     String newId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -725,7 +1111,14 @@ class SystemController extends ChangeNotifier {
     List<MindNode> mapNodes = [];
     String rootId = 'root_system_matrix';
     
-    mapNodes.add(MindNode(id: rootId, text: 'HUNTER SYSTEM', x: 5000, y: 5000, colorHex: '0xFFEBFB7E', shape: 'rect', scale: 1.8));
+    mapNodes.add(MindNode(
+      id: rootId, 
+      text: 'HUNTER SYSTEM', 
+      x: 5000, y: 5000, 
+      colorHex: '0xFFEBFB7E', 
+      shape: 'rect', 
+      scale: 1.8
+    ));
 
     void traverse(SkillNode node, String parentId) {
       String safeId = 'node_${node.id}';
@@ -736,22 +1129,32 @@ class SystemController extends ChangeNotifier {
       if (node.type == 'domain') color = '0xFF0EA5E9'; 
       if (node.progress >= 100.0 || node.completed) color = '0xFF00BFA5'; 
 
+      bool isExpanded = expandedDomainNodes.contains(safeId);
+      bool hasChildren = node.children.isNotEmpty;
+      
+      String displayText = node.name;
+      if (node.type == 'domain' && hasChildren && !isExpanded) {
+        displayText = "$displayText [+]";
+      }
+
       mapNodes.add(MindNode(
         id: safeId,
-        text: node.name,
+        text: displayText,
         x: 5000, y: 5000, 
         colorHex: color,
         shape: node.type == 'domain' ? 'rect' : 'round',
         scale: node.type == 'domain' ? 1.2 : 1.0,
       ));
 
-      for (var child in node.children) {
-        traverse(child, safeId);
+      if (node.type != 'domain' || isExpanded) {
+        for (var child in node.children) {
+          traverse(child, safeId);
+        }
       }
     }
 
     for (var domain in systemData.skills) {
-      traverse(domain, rootId);
+      traverse(domain, rootId); 
     }
 
     return MindMapData(id: 'auto_domain_map', title: 'System Domain Matrix', layoutStyle: 'balanced', nodes: mapNodes);
